@@ -1,0 +1,12 @@
+export const STATUS = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+};
+
+export const SUBS = {
+  NEW_MESSAGE: "NEW_MESSAGE",
+  DELETE_MESSAGE: "DELETE_MESSAGE",
+  NEW_DIRECT: "NEW_DIRECT",
+  DELETE_DIRECT: "DELETE_DIRECT",
+  ONLINE_USER: "ONLINE_USER",
+};

@@ -2,13 +2,12 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import http from "http";
+import chalk from "chalk";
 import { ApolloServer } from "apollo-server-express";
 import { fileLoader, mergeTypes, mergeResolvers } from "merge-graphql-schemas";
-import { PubSub } from "apollo-server";
 import config from "./config";
+import pubsub from "./pubsub";
 import models from "./models";
-import { logger } from "./utils";
-// import { resolvers, typeDefs } from "./graphql";
 import { addUser, addUserConnection } from "./middleware";
 
 const resolvers = mergeResolvers(
@@ -18,8 +17,6 @@ const resolvers = mergeResolvers(
 const typeDefs = mergeTypes(fileLoader(path.join(__dirname, "./types")), {
   all: true,
 });
-
-const pubsub = new PubSub();
 
 const app = express();
 
@@ -32,10 +29,8 @@ const server = new ApolloServer({
   resolvers,
   context: async ({ req, connection }) => {
     if (connection) {
-      // console.log("CONNECTION", connection.context.user);
       return connection.context;
     } else {
-      // console.log("req", req.user);
       return {
         models,
         pubsub,
@@ -54,7 +49,7 @@ const server = new ApolloServer({
       };
     },
   },
-  playground: false,
+  playground: true,
 });
 
 server.applyMiddleware({ app });
@@ -65,19 +60,23 @@ app.get("/*", (_, res) =>
 
 const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
-
-models.sequelize.sync({ force: false }).then(() => {
+// sync
+models.sequelize.authenticate({ force: false }).then(async () => {
+  // console.log(await models.user.findByPk(1));
+  // console.log(await models.user.create({ username: "new" }));
   httpServer.listen(config.PORT, () => {
-    logger(
-      `
+    console.log(
+      chalk.green(
+        `
 
         🚀 Server ready at http://localhost:${config.PORT}
-        
+
         🚀 GraphQL ready at http://localhost:${config.PORT}${server.graphqlPath}
 
         🚀 Client ready at http://localhost:${3000}
-      
+
     `
+      )
     );
   });
 });

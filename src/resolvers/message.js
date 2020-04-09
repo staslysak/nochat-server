@@ -15,6 +15,18 @@ export default {
         (payload, args) => payload.deleteMessage.chatId === args.chatId
       ),
     },
+    userTyping: {
+      subscribe: withFilter(
+        (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.USER_TYPING),
+        (payload, args, { user }) => {
+          console.log(payload, args);
+          return (
+            payload.chatId === args.chatId &&
+            payload.userTyping !== user.username
+          );
+        }
+      ),
+    },
   },
   Mutation: {
     createMessage: async (_, args, { models, user, pubsub }) =>
@@ -25,7 +37,7 @@ export default {
         })
         .catch(() => false),
     deleteMessage: async (_, { id }, { models, pubsub }) =>
-      await models.Message.findOne({ where: { id } }).then((deleteMessage) => {
+      await models.Message.findByPk(id).then((deleteMessage) => {
         return models.Message.destroy({ where: { id } })
           .then(() => {
             pubsub.publish(SUBS.DELETE_MESSAGE, { deleteMessage });
@@ -40,5 +52,12 @@ export default {
       ).then((message) => {
         return id;
       }),
+    userTyping: async (_, { chatId, username }, { pubsub }) => {
+      pubsub.publish(SUBS.USER_TYPING, {
+        chatId,
+        userTyping: username,
+      });
+      return true;
+    },
   },
 };

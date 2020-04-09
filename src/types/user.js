@@ -27,8 +27,8 @@ export default `
   }
   
   type Mutation {
-    setOnline: User
-    setOffline: User
+    connect: User
+    disconnect: User
     logout: Boolean
     verifyUser(secret: String!): LoginResponse!
     login(username: String!, password: String!): LoginResponse!

@@ -6,24 +6,24 @@ export default {
     newDirect: {
       subscribe: withFilter(
         (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.NEW_DIRECT),
-        (payload) =>
-          payload.newDirect.user1Id === payload.userId ||
-          payload.newDirect.user2Id === payload.userId
+        (payload, _, { user }) =>
+          payload.newDirect.user1Id === user.id ||
+          payload.newDirect.user2Id === user.id
       ),
     },
     deleteDirect: {
       subscribe: withFilter(
         (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.DELETE_DIRECT),
-        (payload) =>
-          payload.deleteDirect.user1Id === payload.userId ||
-          payload.deleteDirect.user2Id === payload.userId
+        (payload, _, { user }) =>
+          payload.deleteDirect.user1Id === user.id ||
+          payload.deleteDirect.user2Id === user.id
       ),
     },
   },
   Direct: {
     user: async ({ user1Id, user2Id }, __, { models, user }) => {
       const id = user1Id === user.id ? user2Id : user1Id;
-      return await models.User.findOne({ where: { id } }, { raw: true });
+      return await models.User.findByPk(id, { raw: true });
     },
     messages: async ({ id }, __, { models }) =>
       await models.Message.findAll(
@@ -66,7 +66,7 @@ export default {
         { raw: true }
       ),
     currentDirect: async (_, { userId }, { models, user }) => {
-      const recipient = await models.User.findOne({ where: { id: userId } });
+      const recipient = await models.User.findByPk(userId, { raw: true });
 
       return await models.Direct.findOne(
         {
@@ -117,19 +117,16 @@ export default {
           text,
         });
 
-        pubsub.publish(SUBS.NEW_DIRECT, { newDirect, userId: user.id });
+        pubsub.publish(SUBS.NEW_DIRECT, { newDirect });
         return newDirect;
       });
     },
-    deleteDirect: async (_, { id }, { models, user, pubsub }) =>
-      await models.Direct.findOne({ where: { id } }).then(
+    deleteDirect: async (_, { id }, { models, pubsub }) =>
+      await models.Direct.findByPk(id).then(
         async (deleteDirect) =>
           await models.Direct.destroy({ where: { id } })
             .then(() => {
-              pubsub.publish(SUBS.DELETE_DIRECT, {
-                deleteDirect,
-                userId: user.id,
-              });
+              pubsub.publish(SUBS.DELETE_DIRECT, { deleteDirect });
               return true;
             })
             .catch(() => false)

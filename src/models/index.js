@@ -1,6 +1,6 @@
 import Sequelize from "sequelize";
 import config from "../config";
-import { operatorsAliases } from "./operatorsAliases";
+import operatorsAliases from "../utils/operatorsAliases";
 
 const sequelize = new Sequelize(config.DB_URL, {
   dialect: "postgresql",

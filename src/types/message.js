@@ -11,11 +11,13 @@ export default `
   type Subscription {
     newMessage(chatId: Int!): Message!
     deleteMessage(chatId: Int!): Message!
+    userTyping(chatId: Int!): String!
   }
 
   type Mutation {
-    createMessage(chatId: Int, text: String!): Boolean!
-    deleteMessage(id: Int!): Boolean!
     readMessage(id: Int!): Int!
+    deleteMessage(id: Int!): Boolean!
+    createMessage(chatId: Int, text: String!): Boolean!
+    userTyping(chatId: Int!, username: String): Boolean!
   }
 `;

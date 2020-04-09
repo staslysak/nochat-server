@@ -16,10 +16,7 @@ export default {
   },
   Query: {
     currentUser: async (_, __, { models, user }) => {
-      return await models.User.findOne(
-        { where: { id: user.id } },
-        { raw: true }
-      );
+      return await models.User.findByPk(user.id, { raw: true });
     },
     users: (_, { username }, { models, user }) => {
       if (username) {
@@ -37,44 +34,38 @@ export default {
 
       return [];
     },
-    onlineUsers: async (_, __, { models }) => {
-      return await models.User.findAll(
-        {
-          where: {
-            online: true,
-            status: STATUS.ACTIVE,
-          },
-        },
-        { raw: true }
-      );
-    },
   },
   Mutation: {
-    setOnline: async (_, __, { models, pubsub, user }) => {
-      return await models.User.update(
-        { online: true },
-        {
-          where: { id: user.id },
-          returning: true,
-          plain: true,
-        }
-      ).then((user) => {
-        pubsub.publish(SUBS.ONLINE_USER, { onlineUser: user[1] });
-        return user[1];
-      });
+    connect: async (_, __, { models, pubsub, user }) => {
+      return await models.User.findByPk(user.id)
+        .then((user) => {
+          if (user) {
+            user.update({
+              online: true,
+            });
+          }
+          return user;
+        })
+        .then((onlineUser) => {
+          pubsub.publish(SUBS.ONLINE_USER, { onlineUser });
+          return onlineUser;
+        });
     },
-    setOffline: async (_, __, { models, pubsub, user }) => {
-      return await models.User.update(
-        { online: false, lastSeen: Date.now() },
-        {
-          where: { id: user.id },
-          returning: true,
-          plain: true,
-        }
-      ).then((user) => {
-        pubsub.publish(SUBS.ONLINE_USER, { onlineUser: user[1] });
-        return user[1];
-      });
+    disconnect: async (_, __, { models, pubsub, user }) => {
+      return await models.User.findByPk(user.id)
+        .then((user) => {
+          if (user) {
+            user.update({
+              online: false,
+              lastSeen: Date.now(),
+            });
+          }
+          return user;
+        })
+        .then((onlineUser) => {
+          pubsub.publish(SUBS.ONLINE_USER, { onlineUser });
+          return onlineUser;
+        });
     },
     logout: () => true,
     login: async (_, { username, password }, { models }) => {

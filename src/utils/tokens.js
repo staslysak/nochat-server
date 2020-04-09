@@ -1,9 +1,9 @@
 import JWT from "jsonwebtoken";
 import config from "../config";
 
-export const createTokens = async user => {
+export const createTokens = async (user) => {
   const token = JWT.sign({ user: { id: user.id } }, config.TOKEN_SECRET, {
-    expiresIn: config.TOKEN_EXPIRETION
+    expiresIn: config.TOKEN_EXPIRETION,
   });
 
   const refreshToken = JWT.sign(
@@ -15,20 +15,20 @@ export const createTokens = async user => {
   return { token, refreshToken };
 };
 
-export const createValidationToken = secret =>
+export const createValidationToken = (secret) =>
   JWT.sign({ secret }, config.TOKEN_SECRET, { expiresIn: "1h" });
 
 export const refreshTokens = async (token, refreshToken, models) => {
   let userId = -1;
   try {
     const {
-      user: { id }
+      user: { id },
     } = JWT.decode(refreshToken);
     userId = id;
 
     if (!userId) return {};
 
-    const user = await models.User.findOne({ where: { id: userId }, raw: true });
+    const user = await models.User.findByPk(userId, { raw: true });
 
     if (!user) return {};
 
@@ -37,7 +37,7 @@ export const refreshTokens = async (token, refreshToken, models) => {
     const tokens = await createTokens(user);
     return {
       user,
-      ...tokens
+      ...tokens,
     };
   } catch (error) {
     return {};

@@ -22,17 +22,16 @@ const app = express();
 
 app.use(cors("*"));
 app.use(addUser);
-app.use(express.static(path.join(__dirname, "build")));
+app.use(express.static(path.join(__dirname, "../build")));
 
 const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: async ({ req, connection }) => {
-    const serverUrl = `${req.protocol}://${req.get("host")}`;
-
     if (connection) {
       return connection.context;
     } else {
+      const serverUrl = `${req.protocol}://${req.get("host")}`;
       return {
         models,
         op: models.Sequelize.Op,
@@ -60,7 +59,7 @@ const server = new ApolloServer({
 server.applyMiddleware({ app });
 
 app.get("/*", (_, res) =>
-  res.sendFile(path.join(__dirname, "build", "index.html"))
+  res.sendFile(path.join(__dirname, "../build", "index.html"))
 );
 
 const httpServer = http.createServer(app);

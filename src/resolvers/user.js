@@ -16,15 +16,15 @@ export default {
   },
   Query: {
     currentUser: async (_, __, { models, user }) => {
-      return await models.User.findByPk(user.id, { raw: true });
+      return await models.user.findByPk(user.id, { raw: true });
     },
-    users: (_, { username }, { models, user }) => {
+    users: (_, { username }, { models, op, user }) => {
       if (username) {
-        return models.User.findAll(
+        return models.user.findAll(
           {
             where: {
-              username: { $like: `%${username}%` },
-              id: { $ne: user.id },
+              username: { [op.like]: `%${username}%` },
+              id: { [op.ne]: user.id },
               status: STATUS.ACTIVE,
             },
           },
@@ -37,7 +37,8 @@ export default {
   },
   Mutation: {
     connect: async (_, __, { models, pubsub, user }) => {
-      return await models.User.findByPk(user.id)
+      return await models.user
+        .findByPk(user.id)
         .then((user) => {
           if (user) {
             user.update({
@@ -52,7 +53,8 @@ export default {
         });
     },
     disconnect: async (_, __, { models, pubsub, user }) => {
-      return await models.User.findByPk(user.id)
+      return await models.user
+        .findByPk(user.id)
         .then((user) => {
           if (user) {
             user.update({
@@ -72,10 +74,11 @@ export default {
       return await tryLogin(username, password, models);
     },
     verifyUser: async (_, { secret }, { models }) => verifyUser(secret, models),
-    createUser: async (_, args, { models }) =>
-      await models.User.create(args)
+    register: async (_, args, { models }) => {
+      return await models.user
+        .create(args)
         .then(async (user) => {
-          const token = await createValidationToken(user.shortCode);
+          const token = createValidationToken(user.shortCode);
           await sendVerificationEmail(user.email, token);
           return true;
         })
@@ -83,6 +86,7 @@ export default {
           throw new UserInputError("Validation Error", {
             validationErrors: formatErrors(error, models),
           });
-        }),
+        });
+    },
   },
 };

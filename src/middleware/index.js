@@ -1,6 +1,6 @@
 import JWT from "jsonwebtoken";
 import { refreshTokens } from "../utils";
-import models from "../models";
+import models from "../db/models";
 import config from "../config";
 
 export const addUser = async (req, res, next) => {
@@ -11,12 +11,12 @@ export const addUser = async (req, res, next) => {
       req.user = user;
     } catch (error) {
       const refreshToken = req.headers["x-refresh-token"];
-      const newTokens = await refreshTokens(token, refreshToken, models);
+      const newTokens = await refreshTokens(refreshToken, models);
       if (newTokens.token && newTokens.refreshToken) {
         res.set({
           "Access-Control-Expose-Headers": "*",
           "x-refresh-token": newTokens.refreshToken,
-          "x-token": newTokens.token
+          "x-token": newTokens.token,
         });
       }
       req.user = newTokens.user;
@@ -25,7 +25,7 @@ export const addUser = async (req, res, next) => {
   next();
 };
 
-export const addUserConnection = async headers => {
+export const addUserConnection = async (headers) => {
   const token = headers["x-token"];
   if (token) {
     try {
@@ -33,7 +33,7 @@ export const addUserConnection = async headers => {
       return user;
     } catch (error) {
       const refreshToken = headers["x-refresh-token"];
-      const newTokens = await refreshTokens(token, refreshToken, models);
+      const newTokens = await refreshTokens(refreshToken, models);
       if (newTokens.token && newTokens.refreshToken) {
       }
       return newTokens.user;

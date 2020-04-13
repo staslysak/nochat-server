@@ -7,7 +7,7 @@ import { ApolloServer } from "apollo-server-express";
 import { fileLoader, mergeTypes, mergeResolvers } from "merge-graphql-schemas";
 import config from "./config";
 import pubsub from "./pubsub";
-import models from "./models";
+import models from "./db/models";
 import { addUser, addUserConnection } from "./middleware";
 
 const resolvers = mergeResolvers(
@@ -28,13 +28,17 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: async ({ req, connection }) => {
+    const serverUrl = `${req.protocol}://${req.get("host")}`;
+
     if (connection) {
       return connection.context;
     } else {
       return {
         models,
+        op: models.Sequelize.Op,
         pubsub,
         user: req.user,
+        serverUrl,
       };
     }
   },
@@ -44,6 +48,7 @@ const server = new ApolloServer({
       return {
         ...connectionParams.headers,
         models,
+        op: models.Sequelize.Op,
         pubsub,
         user,
       };
@@ -62,8 +67,6 @@ const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
 // sync
 models.sequelize.authenticate({ force: false }).then(async () => {
-  // console.log(await models.user.findByPk(1));
-  // console.log(await models.user.create({ username: "new" }));
   httpServer.listen(config.PORT, () => {
     console.log(
       chalk.green(

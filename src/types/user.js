@@ -32,6 +32,6 @@ export default `
     logout: Boolean
     verifyUser(secret: String!): LoginResponse!
     login(username: String!, password: String!): LoginResponse!
-    createUser(username: String!, email: String!, password: String!): Boolean!
+    register(username: String!, email: String!, password: String!): Boolean!
   }
 `;

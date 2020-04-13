@@ -14,6 +14,10 @@ export default `
     userTyping(chatId: Int!): String!
   }
 
+  type Query {
+    messages(chatId: Int!, offset: Int): [Message!]!
+  }
+
   type Mutation {
     readMessage(id: Int!): Int!
     deleteMessage(id: Int!): Boolean!

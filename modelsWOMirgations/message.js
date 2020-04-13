@@ -5,6 +5,10 @@ export default (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    type: {
+      type: DataTypes.STRING,
+      defaultValue: "text",
+    },
   });
 
   Message.associate = (models) => {

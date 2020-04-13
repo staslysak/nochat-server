@@ -1,10 +1,9 @@
 export default `
   type Direct {
     id: Int!
-    createdAt: String!
-    messages: [Message!]
     user: User
     unread: Int
+    createdAt: String!
     lastMessage: Message
   }
 

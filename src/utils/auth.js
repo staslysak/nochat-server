@@ -5,7 +5,7 @@ import { createTokens } from "./tokens";
 import { STATUS } from "../constants";
 
 export const tryLogin = async (username, password, models) => {
-  const user = await models.User.findOne(
+  const user = await models.user.findOne(
     { where: { username } },
     { raw: true }
   );
@@ -13,40 +13,42 @@ export const tryLogin = async (username, password, models) => {
   if (!user) {
     throw new UserInputError("Validation Error", {
       validationErrors: {
-        username: "User with this username doesn't exist"
-      }
+        username: "User with this username doesn't exist",
+      },
     });
   }
 
-  const match = await models.User.comparePassword(password, user.password);
+  const match = await models.user.comparePassword(password, user.password);
   if (!match) {
     throw new UserInputError("Validation Error", {
       validationErrors: {
-        password: "Credantials doesn't match"
-      }
+        password: "Credantials doesn't match",
+      },
     });
   }
 
   const tokens = await createTokens(user);
+
   return {
     user,
-    ...tokens
+    ...tokens,
   };
 };
 
 export const verifyUser = async (token, models) => {
   try {
     JWT.verify(token, config.TOKEN_SECRET);
+
     const { secret } = JWT.decode(token);
 
     if (!secret) throw new AuthenticationError("Invalid Token");
 
-    const user = await models.User.update(
+    const user = await models.user.update(
       { status: STATUS.ACTIVE },
       {
         where: { shortCode: secret },
         returning: true,
-        plain: true
+        plain: true,
       }
     );
 
@@ -56,7 +58,7 @@ export const verifyUser = async (token, models) => {
 
     return {
       user: user[1],
-      ...tokens
+      ...tokens,
     };
   } catch (error) {
     throw new AuthenticationError("Invalid Token");

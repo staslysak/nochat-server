@@ -19,8 +19,15 @@ export const formatErrors = (e, models) => {
 };
 
 export const getHost = (url) => {
-  if (process.env.NODE_ENV === "development") {
-    return "http://localhost:3000" + url;
+  const env = process.env.NODE_ENV || "development";
+
+  if (env === "development") {
+    return "http://localhost:3000/" + url;
   }
+
+  if (env === "production") {
+    return "http://localhost:8081/" + url;
+  }
+
   return "/" + url;
 };

@@ -7,21 +7,27 @@ export default (sequelize, DataTypes) => {
     "user",
     {
       avatar: {
+        allowNull: false,
         type: DataTypes.STRING,
         defaultValue: avatarGen,
       },
       name: {
+        allowNull: false,
         type: DataTypes.STRING,
+        defaultValue: "jhon",
       },
       online: {
+        allowNull: false,
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
       lastSeen: {
+        allowNull: false,
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
       },
       username: {
+        allowNull: false,
         type: DataTypes.STRING,
         unique: {
           msg: "Username is already taken",
@@ -34,6 +40,7 @@ export default (sequelize, DataTypes) => {
         },
       },
       email: {
+        allowNull: false,
         type: DataTypes.STRING,
         unique: {
           msg: "Email is already taken",
@@ -46,10 +53,12 @@ export default (sequelize, DataTypes) => {
         },
       },
       status: {
+        allowNull: false,
         type: DataTypes.ENUM(STATUS.ACTIVE, STATUS.INACTIVE),
         defaultValue: STATUS.INACTIVE,
       },
       shortCode: {
+        allowNull: false,
         type: DataTypes.STRING,
         unique: true,
         defaultValue: shortCodeGen,
@@ -59,6 +68,7 @@ export default (sequelize, DataTypes) => {
         },
       },
       password: {
+        allowNull: false,
         type: DataTypes.STRING,
         validate: {
           len: {

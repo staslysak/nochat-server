@@ -34,7 +34,7 @@ export const sendVerificationEmail = async (email, token) => {
     html: `
       <p>
         Follow this link to verify your email:
-        <a href='${url} target='_blank'>Click here</a>
+        <a href='${url}' target='_blank'>Click here</a>
      </p>`,
   };
 

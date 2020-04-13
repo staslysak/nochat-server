@@ -11,25 +11,25 @@ export default (sequelize, DataTypes) => {
   // USER JOIN
   //   {
   //     model: models.User,
-  //     as: "user1",
+  //     as: "receiver",
   //     required: false,
   //     where: { id: { [models.Sequelize.Op.ne]: user.id } }
   //   },
   //   {
   //     model: models.User,
-  //     as: "user2",
+  //     as: "sender",
   //     required: false,
   //     where: { id: { [models.Sequelize.Op.ne]: user.id } }
   //   },
 
   Direct.associate = (models) => {
     Direct.belongsTo(models.User, {
-      foreignKey: "user1Id",
-      // as: "user1"
+      foreignKey: "receiverId",
+      // as: "receiver"
     });
     Direct.belongsTo(models.User, {
-      foreignKey: "user2Id",
-      // as: "user2"
+      foreignKey: "senderId",
+      // as: "sender"
     });
     Direct.hasMany(models.Message, {
       as: "messages",

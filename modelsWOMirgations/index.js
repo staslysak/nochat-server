@@ -1,13 +1,11 @@
 import Sequelize from "sequelize";
 import config from "../config";
-import operatorsAliases from "../utils/operatorsAliases";
 
 const sequelize = new Sequelize(config.DB_URL, {
   dialect: "postgresql",
   define: { underscored: true },
   logging: true,
   benchmark: true,
-  operatorsAliases,
 });
 
 const models = {

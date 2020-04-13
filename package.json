@@ -4,26 +4,29 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon src/index",
-    "dev": "nodemon"
+    "start": "cross-env NODE_ENV=development nodemon src/index",
+    "build": "babel src -d dist",
+    "dev": "cross-env NODE_ENV=development nodemon src/index"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@babel/preset-env": "^7.9.0",
+    "@babel/preset-env": "^7.9.5",
     "@babel/register": "^7.9.0",
     "babel-cli": "^6.26.0",
     "babel-node": "0.0.1-security",
     "babel-preset-env": "^1.7.0",
     "babel-preset-stage-3": "^6.24.1",
+    "babel-register": "^6.26.0",
     "chalk": "^4.0.0",
     "cors": "^2.8.5",
-    "nodemon": "^2.0.2"
+    "cross-env": "^7.0.2",
+    "nodemon": "^2.0.3"
   },
   "dependencies": {
-    "apollo-server": "^2.11.0",
-    "apollo-server-express": "^2.11.0",
+    "apollo-server": "^2.12.0",
+    "apollo-server-express": "^2.12.0",
     "bcrypt": "^4.0.1",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
@@ -33,7 +36,7 @@
     "merge-graphql-schemas": "^1.7.7",
     "mysql2": "^2.1.0",
     "nodemailer": "^6.4.6",
-    "pg": "^8.0.0",
+    "pg": "^8.0.2",
     "pg-hstore": "^2.3.3",
     "sequelize": "^5.21.6",
     "sequelize-auto-migrations": "^1.0.3"

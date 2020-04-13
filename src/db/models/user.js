@@ -2,26 +2,33 @@ import bcrypt from "bcrypt";
 import { shortCodeGen, avatarGen } from "../../utils";
 import { STATUS } from "../../constants";
 
-module.exports = (sequelize, DataTypes) => {
-  const user = sequelize.define(
+export default (sequelize, DataTypes) => {
+  const User = sequelize.define(
     "user",
     {
       avatar: {
+        allowNull: false,
         type: DataTypes.STRING,
         defaultValue: avatarGen,
       },
       name: {
+        allowNull: false,
+        defaultValue: "jhon",
         type: DataTypes.STRING,
       },
       online: {
+        allowNull: false,
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
       lastSeen: {
+        field: "last_seen",
+        allowNull: false,
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
       },
       username: {
+        allowNull: false,
         type: DataTypes.STRING,
         unique: {
           msg: "Username is already taken",
@@ -34,6 +41,7 @@ module.exports = (sequelize, DataTypes) => {
         },
       },
       email: {
+        allowNull: false,
         type: DataTypes.STRING,
         unique: {
           msg: "Email is already taken",
@@ -46,10 +54,13 @@ module.exports = (sequelize, DataTypes) => {
         },
       },
       status: {
+        allowNull: false,
         type: DataTypes.ENUM(STATUS.ACTIVE, STATUS.INACTIVE),
         defaultValue: STATUS.INACTIVE,
       },
       shortCode: {
+        field: "short_code",
+        allowNull: false,
         type: DataTypes.STRING,
         unique: true,
         defaultValue: shortCodeGen,
@@ -59,6 +70,7 @@ module.exports = (sequelize, DataTypes) => {
         },
       },
       password: {
+        allowNull: false,
         type: DataTypes.STRING,
         validate: {
           len: {
@@ -75,19 +87,21 @@ module.exports = (sequelize, DataTypes) => {
           user.password = hashedPassword;
         },
       },
-    },
-    {
-      underscored: true,
     }
   );
 
-  user.comparePassword = async (password, prevPassword) => {
+  User.comparePassword = async (password, prevPassword) => {
     const match = await bcrypt.compare(password, prevPassword);
     return match;
   };
 
-  user.associate = function (models) {
-    // associations can be defined here
+  User.associate = (models) => {
+    // User.belongsToMany(models.Team, {
+    //   through: "member",
+    //   foreignKey: "userId",
+    // });
+    // User.hasMany(models.message);
   };
-  return user;
+
+  return User;
 };

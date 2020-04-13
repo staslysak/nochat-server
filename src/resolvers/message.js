@@ -19,7 +19,7 @@ export default {
       subscribe: withFilter(
         (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.USER_TYPING),
         (payload, args, { user }) => {
-          console.log(payload, args);
+          console.log("userTyping", payload, args);
           return (
             payload.chatId === args.chatId &&
             payload.userTyping !== user.username
@@ -28,17 +28,32 @@ export default {
       ),
     },
   },
+  Query: {
+    messages: async (_, { chatId, offset }, { models }) => {
+      return await models.message.findAll(
+        {
+          where: { chatId },
+          order: [["created_at", "DESC"]],
+          limit: 20,
+          offset,
+        },
+        { raw: true }
+      );
+    },
+  },
   Mutation: {
     createMessage: async (_, args, { models, user, pubsub }) =>
-      await models.Message.create({ ...args, userId: user.id }, { raw: true })
+      await models.message
+        .create({ ...args, userId: user.id }, { raw: true })
         .then(async (newMessage) => {
           pubsub.publish(SUBS.NEW_MESSAGE, { newMessage });
           return true;
         })
         .catch(() => false),
     deleteMessage: async (_, { id }, { models, pubsub }) =>
-      await models.Message.findByPk(id).then((deleteMessage) => {
-        return models.Message.destroy({ where: { id } })
+      await models.message.findByPk(id).then((deleteMessage) => {
+        return models.message
+          .destroy({ where: { id } })
           .then(() => {
             pubsub.publish(SUBS.DELETE_MESSAGE, { deleteMessage });
             return true;
@@ -46,12 +61,14 @@ export default {
           .catch(() => false);
       }),
     readMessage: async (_, { id }, { models, pubsub }) =>
-      await models.Message.update(
-        { unread: false },
-        { where: { id }, returning: true, plain: true }
-      ).then((message) => {
-        return id;
-      }),
+      await models.message
+        .update(
+          { unread: false },
+          { where: { id }, returning: true, plain: true }
+        )
+        .then((message) => {
+          return id;
+        }),
     userTyping: async (_, { chatId, username }, { pubsub }) => {
       pubsub.publish(SUBS.USER_TYPING, {
         chatId,

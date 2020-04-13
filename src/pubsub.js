@@ -13,6 +13,6 @@ const options = {
   },
 };
 
-const redis = new RedisPubSub(options);
+// export default new RedisPubSub(options);
 
 export default new PubSub();

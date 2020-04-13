@@ -7,50 +7,39 @@ export default {
       subscribe: withFilter(
         (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.NEW_DIRECT),
         (payload, _, { user }) =>
-          payload.newDirect.user1Id === user.id ||
-          payload.newDirect.user2Id === user.id
+          payload.newDirect.receiverId === user.id ||
+          payload.newDirect.senderId === user.id
       ),
     },
     deleteDirect: {
       subscribe: withFilter(
         (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.DELETE_DIRECT),
         (payload, _, { user }) =>
-          payload.deleteDirect.user1Id === user.id ||
-          payload.deleteDirect.user2Id === user.id
+          payload.deleteDirect.receiverId === user.id ||
+          payload.deleteDirect.senderId === user.id
       ),
     },
   },
   Direct: {
-    user: async ({ user1Id, user2Id }, __, { models, user }) => {
-      const id = user1Id === user.id ? user2Id : user1Id;
-      return await models.User.findByPk(id, { raw: true });
+    user: async ({ receiverId, senderId }, __, { models, user }) => {
+      const id = receiverId === user.id ? senderId : receiverId;
+      return await models.user.findByPk(id, { raw: true });
     },
-    messages: async ({ id }, __, { models }) =>
-      await models.Message.findAll(
-        {
-          where: { chatId: id },
-          order: [["created_at", "ASC"]],
-          // limit: 100
-        },
-        { raw: true }
-      ).catch((error) => {
-        return [];
-      }),
     lastMessage: async ({ id }, __, { models }) =>
-      await models.Message.findOne(
+      (await models.message.findOne(
         {
           where: { chatId: id },
           order: [["created_at", "DESC"]],
         },
         { raw: true }
-      ),
-    unread: async ({ id }, __, { models, user }) =>
-      await models.Message.count(
+      )) || {},
+    unread: async ({ id }, __, { models, op, user }) =>
+      await models.message.count(
         {
           where: {
             chatId: id,
             unread: true,
-            userId: { $ne: user.id },
+            userId: { [op.ne]: user.id },
           },
         },
         { raw: true }
@@ -58,47 +47,48 @@ export default {
   },
   Query: {
     directLastMessage: async (_, { chatId }, { models }) =>
-      await models.Message.findOne(
+      await models.message.findOne(
         {
           where: { chatId },
           order: [["created_at", "DESC"]],
         },
         { raw: true }
       ),
-    currentDirect: async (_, { userId }, { models, user }) => {
-      const recipient = await models.User.findByPk(userId, { raw: true });
+    currentDirect: async (_, { userId }, { models, op, user }) => {
+      const recipient = await models.user.findByPk(userId, { raw: true });
 
-      return await models.Direct.findOne(
-        {
-          where: {
-            $or: [
-              { user1Id: user.id, user2Id: userId },
-              { user1Id: userId, user2Id: user.id },
-            ],
+      return await models.direct
+        .findOne(
+          {
+            where: {
+              [op.or]: [
+                { receiverId: user.id, senderId: userId },
+                { receiverId: userId, senderId: user.id },
+              ],
+            },
           },
-        },
-        { raw: true }
-      )
+          { raw: true }
+        )
         .then((direct) => ({ direct: direct.dataValues, recipient }))
         .catch(() => ({ recipient }));
     },
-    directs: async (_, __, { models, user }) =>
-      await models.Direct.findAll(
+    directs: async (_, __, { models, op, user }) =>
+      await models.direct.findAll(
         {
           where: {
-            $or: [{ user1Id: user.id }, { user2Id: user.id }],
+            [op.or]: [{ receiverId: user.id }, { senderId: user.id }],
           },
         },
         { raw: true }
       ),
   },
   Mutation: {
-    createDirect: async (_, { userId, text }, { models, user, pubsub }) => {
-      const exists = await models.Direct.findOne({
+    createDirect: async (_, { userId, text }, { models, op, user, pubsub }) => {
+      const exists = await models.direct.findOne({
         where: {
-          $or: [
-            { user1Id: user.id, user2Id: userId },
-            { user2Id: user.id, user1Id: userId },
+          [op.or]: [
+            { receiverId: user.id, senderId: userId },
+            { senderId: user.id, receiverId: userId },
           ],
         },
       });
@@ -107,24 +97,27 @@ export default {
         return exists;
       }
 
-      return await models.Direct.create({
-        user1Id: user.id,
-        user2Id: userId,
-      }).then(async (newDirect) => {
-        await models.Message.create({
-          userId: user.id,
-          chatId: newDirect.id,
-          text,
-        });
+      return await models.direct
+        .create({
+          receiverId: user.id,
+          senderId: userId,
+        })
+        .then(async (newDirect) => {
+          await models.message.create({
+            userId: user.id,
+            chatId: newDirect.id,
+            text,
+          });
 
-        pubsub.publish(SUBS.NEW_DIRECT, { newDirect });
-        return newDirect;
-      });
+          pubsub.publish(SUBS.NEW_DIRECT, { newDirect });
+          return newDirect;
+        });
     },
     deleteDirect: async (_, { id }, { models, pubsub }) =>
-      await models.Direct.findByPk(id).then(
+      await models.direct.findByPk(id).then(
         async (deleteDirect) =>
-          await models.Direct.destroy({ where: { id } })
+          await models.direct
+            .destroy({ where: { id } })
             .then(() => {
               pubsub.publish(SUBS.DELETE_DIRECT, { deleteDirect });
               return true;

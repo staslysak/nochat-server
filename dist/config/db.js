@@ -1,3 +1,5 @@
+"use strict";
+
 module.exports = {
   development: {
     username: "postgres",
@@ -6,22 +8,17 @@ module.exports = {
     host: "127.0.0.1",
     dialect: "postgresql",
     define: {
-      underscored: true,
+      underscored: true
     },
     logging: true,
-    benchmark: true,
+    benchmark: true
   },
   test: {
     username: "postgres",
     password: "admin",
     database: "postgres",
     host: "127.0.0.1",
-    dialect: "postgresql",
-    define: {
-      underscored: true,
-    },
-    logging: true,
-    benchmark: true,
+    dialect: "postgresql"
   },
   production: {
     username: "postgres",
@@ -30,9 +27,9 @@ module.exports = {
     host: "127.0.0.1",
     dialect: "postgresql",
     define: {
-      underscored: true,
+      underscored: true
     },
     logging: false,
-    benchmark: false,
-  },
+    benchmark: false
+  }
 };

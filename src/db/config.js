@@ -23,9 +23,7 @@ module.exports = {
     benchmark: true,
   },
   production: {
-    // url: config.DB_URL,
-    url:
-      "postgres://orojmxxt:xaRGbgVMLXdzzNoHzrNn9o6RpE9zyirc@drona.db.elephantsql.com:5432/orojmxxt",
+    url: config.DB_URL,
     dialect: "postgresql",
     define: {
       underscored: true,

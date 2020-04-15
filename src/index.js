@@ -84,18 +84,16 @@ app.get("/*", (_, res) =>
 const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
 // sync({ force: false })
-models.sequelize.authenticate().then(async (res) => {
+models.sequelize.authenticate().then(async () => {
   httpServer.listen(config.PORT, () => {
     console.log(
       chalk.green(
         `
+        Server ready at http://localhost:${config.PORT}
 
-        🚀 Server ready at http://localhost:${config.PORT}
+        GraphQL ready at http://localhost:${config.PORT}${server.graphqlPath}
 
-        🚀 GraphQL ready at http://localhost:${config.PORT}${server.graphqlPath}
-
-        🚀 Client ready at http://localhost:${3000}
-
+        Client ready at http://localhost:${3000}
     `
       )
     );

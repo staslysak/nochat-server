@@ -1,9 +1,11 @@
 "use strict";
 
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.verifyUser = exports.tryLogin = void 0;
+exports.onConnect = exports.onDisconnect = exports.verifyUser = exports.tryLogin = void 0;
 
 var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
 
@@ -15,12 +17,11 @@ var _tokens = require("./tokens");
 
 var _constants = require("../constants");
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
 const tryLogin = async (username, password, models) => {
   const user = await models.user.findOne({
     where: {
-      username
+      username,
+      status: _constants.STATUS.ACTIVE
     }
   }, {
     raw: true
@@ -83,3 +84,50 @@ const verifyUser = async (token, models) => {
 };
 
 exports.verifyUser = verifyUser;
+
+const onDisconnect = async ({
+  models,
+  pubsub,
+  user
+}) => {
+  return await models.user.findByPk(user.id).then(user => {
+    if (user) {
+      user.update({
+        online: false,
+        lastSeen: Date.now()
+      });
+    }
+
+    return user;
+  }).then(onlineUser => {
+    pubsub.publish(_constants.SUBS.ONLINE_USER, {
+      onlineUser
+    });
+    return onlineUser;
+  });
+};
+
+exports.onDisconnect = onDisconnect;
+
+const onConnect = async ({
+  models,
+  pubsub,
+  user
+}) => {
+  return await models.user.findByPk(user.id).then(user => {
+    if (user) {
+      user.update({
+        online: true
+      });
+    }
+
+    return user;
+  }).then(onlineUser => {
+    pubsub.publish(_constants.SUBS.ONLINE_USER, {
+      onlineUser
+    });
+    return onlineUser;
+  });
+};
+
+exports.onConnect = onConnect;

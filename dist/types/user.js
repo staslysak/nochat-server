@@ -33,8 +33,6 @@ var _default = `
   }
   
   type Mutation {
-    connect: User
-    disconnect: User
     logout: Boolean
     verifyUser(secret: String!): LoginResponse!
     login(username: String!, password: String!): LoginResponse!

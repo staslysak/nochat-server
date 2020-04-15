@@ -2,11 +2,11 @@ import JWT from "jsonwebtoken";
 import config from "../config";
 import { UserInputError, AuthenticationError } from "apollo-server";
 import { createTokens } from "./tokens";
-import { STATUS } from "../constants";
+import { STATUS, SUBS } from "../constants";
 
 export const tryLogin = async (username, password, models) => {
   const user = await models.user.findOne(
-    { where: { username } },
+    { where: { username, status: STATUS.ACTIVE } },
     { raw: true }
   );
 
@@ -63,4 +63,39 @@ export const verifyUser = async (token, models) => {
   } catch (error) {
     throw new AuthenticationError("Invalid Token");
   }
+};
+
+export const onDisconnect = async ({ models, pubsub, user }) => {
+  return await models.user
+    .findByPk(user.id)
+    .then((user) => {
+      if (user) {
+        user.update({
+          online: false,
+          lastSeen: Date.now(),
+        });
+      }
+      return user;
+    })
+    .then((onlineUser) => {
+      pubsub.publish(SUBS.ONLINE_USER, { onlineUser });
+      return onlineUser;
+    });
+};
+
+export const onConnect = async ({ models, pubsub, user }) => {
+  return await models.user
+    .findByPk(user.id)
+    .then((user) => {
+      if (user) {
+        user.update({
+          online: true,
+        });
+      }
+      return user;
+    })
+    .then((onlineUser) => {
+      pubsub.publish(SUBS.ONLINE_USER, { onlineUser });
+      return onlineUser;
+    });
 };

@@ -9,6 +9,7 @@ import config from "./config";
 import pubsub from "./pubsub";
 import models from "./db/models";
 import { addUser, addUserConnection } from "./middleware";
+import { onConnect, onDisconnect } from "./utils/auth";
 
 const resolvers = mergeResolvers(
   fileLoader(path.join(__dirname, "./resolvers"))
@@ -21,7 +22,7 @@ const typeDefs = mergeTypes(fileLoader(path.join(__dirname, "./types")), {
 const app = express();
 
 app.use(cors("*"));
-app.use(addUser);
+app.use(addUser(models));
 app.use(express.static(path.join(__dirname, "../build")));
 
 const server = new ApolloServer({
@@ -43,14 +44,32 @@ const server = new ApolloServer({
   },
   subscriptions: {
     onConnect: async (connectionParams) => {
-      const user = await addUserConnection(connectionParams.headers);
-      return {
-        ...connectionParams.headers,
-        models,
-        op: models.Sequelize.Op,
-        pubsub,
-        user,
-      };
+      try {
+        if (
+          connectionParams["x-token"] &&
+          connectionParams["x-refresh-token"]
+        ) {
+          const user = await addUserConnection(connectionParams, models);
+          if (user) {
+            await onConnect({ models, pubsub, user });
+          }
+          return {
+            models,
+            op: models.Sequelize.Op,
+            pubsub,
+            user,
+          };
+        }
+      } catch (error) {
+        throw new Error("Unauthorized!");
+      }
+    },
+    onDisconnect: async (_, context) => {
+      const initialContext = await context.initPromise;
+
+      if (initialContext && initialContext.user) {
+        await onDisconnect(initialContext);
+      }
     },
   },
   playground: process.env.NODE_ENV !== "production",
@@ -64,8 +83,8 @@ app.get("/*", (_, res) =>
 
 const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
-// sync
-models.sequelize.authenticate({ force: false }).then(async () => {
+// sync({ force: false })
+models.sequelize.authenticate().then(async (res) => {
   httpServer.listen(config.PORT, () => {
     console.log(
       chalk.green(

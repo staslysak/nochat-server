@@ -36,39 +36,6 @@ export default {
     },
   },
   Mutation: {
-    connect: async (_, __, { models, pubsub, user }) => {
-      return await models.user
-        .findByPk(user.id)
-        .then((user) => {
-          if (user) {
-            user.update({
-              online: true,
-            });
-          }
-          return user;
-        })
-        .then((onlineUser) => {
-          pubsub.publish(SUBS.ONLINE_USER, { onlineUser });
-          return onlineUser;
-        });
-    },
-    disconnect: async (_, __, { models, pubsub, user }) => {
-      return await models.user
-        .findByPk(user.id)
-        .then((user) => {
-          if (user) {
-            user.update({
-              online: false,
-              lastSeen: Date.now(),
-            });
-          }
-          return user;
-        })
-        .then((onlineUser) => {
-          pubsub.publish(SUBS.ONLINE_USER, { onlineUser });
-          return onlineUser;
-        });
-    },
     logout: () => true,
     login: async (_, { username, password }, { models }) => {
       return await tryLogin(username, password, models);

@@ -1,5 +1,7 @@
 "use strict";
 
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -10,8 +12,6 @@ var _config = _interopRequireDefault(require("./config"));
 var _nodemailer = _interopRequireDefault(require("nodemailer"));
 
 var _utils = require("./utils");
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 const transporter = _nodemailer.default.createTransport({
   pool: true,
@@ -31,7 +31,7 @@ const transporter = _nodemailer.default.createTransport({
 });
 
 const send = message => transporter.sendMail({ ...message
-}, (err, info) => console.log(err ? err : `Email sent: ${JSON.stringify(info)}`));
+}, (err, info) => console.log(err ? err : `[Email sent]: ${JSON.stringify(info, null, 2)}`));
 
 exports.send = send;
 

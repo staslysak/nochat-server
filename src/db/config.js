@@ -1,14 +1,13 @@
+import config from "../config";
+
 module.exports = {
   development: {
-    username: "postgres",
-    password: "admin",
-    database: "postgres",
-    host: "127.0.0.1",
+    url: config.DB_URL,
     dialect: "postgresql",
     define: {
       underscored: true,
     },
-    logging: true,
+    logging: false,
     benchmark: true,
   },
   test: {
@@ -24,10 +23,9 @@ module.exports = {
     benchmark: true,
   },
   production: {
-    username: "postgres",
-    password: "admin",
-    database: "postgres",
-    host: "127.0.0.1",
+    // url: config.DB_URL,
+    url:
+      "postgres://orojmxxt:xaRGbgVMLXdzzNoHzrNn9o6RpE9zyirc@drona.db.elephantsql.com:5432/orojmxxt",
     dialect: "postgresql",
     define: {
       underscored: true,

@@ -23,7 +23,7 @@ const transporter = nodemailer.createTransport(
 
 export const send = (message) =>
   transporter.sendMail({ ...message }, (err, info) =>
-    console.log(err ? err : `Email sent: ${JSON.stringify(info)}`)
+    console.log(err ? err : `[Email sent]: ${JSON.stringify(info, null, 2)}`)
   );
 
 export const sendVerificationEmail = async (email, token) => {

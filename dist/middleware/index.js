@@ -1,5 +1,7 @@
 "use strict";
 
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -9,13 +11,9 @@ var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
 
 var _utils = require("../utils");
 
-var _models = _interopRequireDefault(require("../db/models"));
-
 var _config = _interopRequireDefault(require("../config"));
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-const addUser = async (req, res, next) => {
+const addUser = models => async (req, res, next) => {
   const token = req.headers["x-token"];
 
   if (token) {
@@ -27,7 +25,7 @@ const addUser = async (req, res, next) => {
       req.user = user;
     } catch (error) {
       const refreshToken = req.headers["x-refresh-token"];
-      const newTokens = await (0, _utils.refreshTokens)(refreshToken, _models.default);
+      const newTokens = await (0, _utils.refreshTokens)(refreshToken, models);
 
       if (newTokens.token && newTokens.refreshToken) {
         res.set({
@@ -37,7 +35,7 @@ const addUser = async (req, res, next) => {
         });
       }
 
-      req.user = newTokens.user;
+      req.user = newTokens.user || {};
     }
   }
 
@@ -46,8 +44,8 @@ const addUser = async (req, res, next) => {
 
 exports.addUser = addUser;
 
-const addUserConnection = async headers => {
-  const token = headers["x-token"];
+const addUserConnection = async (connectionParams, models) => {
+  const token = connectionParams["x-token"];
 
   if (token) {
     try {
@@ -57,12 +55,11 @@ const addUserConnection = async headers => {
 
       return user;
     } catch (error) {
-      const refreshToken = headers["x-refresh-token"];
-      const newTokens = await (0, _utils.refreshTokens)(refreshToken, _models.default);
+      const refreshToken = connectionParams["x-refresh-token"];
+      const newTokens = await (0, _utils.refreshTokens)(refreshToken, models); // if (newTokens.token && newTokens.refreshToken) {
+      // }
 
-      if (newTokens.token && newTokens.refreshToken) {}
-
-      return newTokens.user;
+      return newTokens.user || {};
     }
   }
 };

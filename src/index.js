@@ -1,29 +1,22 @@
 import express from "express";
-import cors from "cors";
-import path from "path";
 import http from "http";
 import chalk from "chalk";
 import { ApolloServer } from "apollo-server-express";
-import { fileLoader, mergeTypes, mergeResolvers } from "merge-graphql-schemas";
 import config from "./config";
 import pubsub from "./pubsub";
 import models from "./db/models";
-import { addUser, addUserConnection } from "./middleware";
-import { onConnect, onDisconnect } from "./utils/auth";
-
-const resolvers = mergeResolvers(
-  fileLoader(path.join(__dirname, "./resolvers"))
-);
-
-const typeDefs = mergeTypes(fileLoader(path.join(__dirname, "./types")), {
-  all: true,
-});
+import { initMiddleware } from "./middleware";
+import {
+  connectUser,
+  disconnectUser,
+  verifyTokenConnection,
+} from "./utils/auth";
+import { typeDefs } from "./types";
+import { resolvers } from "./resolvers";
 
 const app = express();
 
-app.use(cors("*"));
-app.use(addUser(models));
-app.use(express.static(path.join(__dirname, "../build")));
+initMiddleware(app, models);
 
 const server = new ApolloServer({
   typeDefs,
@@ -49,10 +42,12 @@ const server = new ApolloServer({
           connectionParams["x-token"] &&
           connectionParams["x-refresh-token"]
         ) {
-          const user = await addUserConnection(connectionParams, models);
+          const user = await verifyTokenConnection(connectionParams, models);
+
           if (user) {
-            await onConnect({ models, pubsub, user });
+            await connectUser({ models, pubsub, user });
           }
+
           return {
             models,
             op: models.Sequelize.Op,
@@ -68,7 +63,7 @@ const server = new ApolloServer({
       const initialContext = await context.initPromise;
 
       if (initialContext && initialContext.user) {
-        await onDisconnect(initialContext);
+        await disconnectUser(initialContext);
       }
     },
   },
@@ -77,14 +72,10 @@ const server = new ApolloServer({
 
 server.applyMiddleware({ app });
 
-app.get("/*", (_, res) =>
-  res.sendFile(path.join(__dirname, "../build", "index.html"))
-);
-
 const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
 // sync({ force: false })
-models.sequelize.authenticate().then(async () => {
+models.sequelize.sync().then(async () => {
   httpServer.listen(config.PORT, () => {
     console.log(
       chalk.green(

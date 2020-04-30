@@ -1,14 +1,18 @@
-import config from "../config";
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+var _config = _interopRequireDefault(require("../config"));
 
 module.exports = {
   development: {
-    url: config.DB_URL,
+    url: _config.default.DB_URL,
     dialect: "postgresql",
     define: {
-      underscored: true,
+      underscored: true
     },
     // logging: false,
-    benchmark: true,
+    benchmark: true
   },
   test: {
     username: "postgres",
@@ -17,18 +21,18 @@ module.exports = {
     host: "127.0.0.1",
     dialect: "postgresql",
     define: {
-      underscored: true,
+      underscored: true
     },
     logging: true,
-    benchmark: true,
+    benchmark: true
   },
   production: {
-    url: config.DB_URL,
+    url: _config.default.DB_URL,
     dialect: "postgresql",
     define: {
-      underscored: true,
+      underscored: true
     },
     logging: false,
-    benchmark: false,
-  },
+    benchmark: false
+  }
 };

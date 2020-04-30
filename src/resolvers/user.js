@@ -6,14 +6,9 @@ import {
 } from "../utils";
 import { UserInputError } from "apollo-server";
 import { sendVerificationEmail } from "../mailer";
-import { STATUS, SUBS } from "../constants";
+import { STATUS } from "../constants";
 
 export default {
-  Subscription: {
-    onlineUser: {
-      subscribe: (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.ONLINE_USER),
-    },
-  },
   Query: {
     currentUser: async (_, __, { models, user }) => {
       return await models.user.findByPk(user.id, { raw: true });

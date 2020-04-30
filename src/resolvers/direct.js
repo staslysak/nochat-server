@@ -1,25 +1,6 @@
-import { SUBS } from "../constants";
-import { withFilter } from "apollo-server";
+import { subTypes } from "../constants";
 
 export default {
-  Subscription: {
-    newDirect: {
-      subscribe: withFilter(
-        (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.NEW_DIRECT),
-        (payload, _, { user }) =>
-          payload.newDirect.receiverId === user.id ||
-          payload.newDirect.senderId === user.id
-      ),
-    },
-    deleteDirect: {
-      subscribe: withFilter(
-        (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.DELETE_DIRECT),
-        (payload, _, { user }) =>
-          payload.deleteDirect.receiverId === user.id ||
-          payload.deleteDirect.senderId === user.id
-      ),
-    },
-  },
   Direct: {
     user: async ({ receiverId, senderId }, __, { models, user }) => {
       const id = receiverId === user.id ? senderId : receiverId;
@@ -109,7 +90,7 @@ export default {
             text,
           });
 
-          pubsub.publish(SUBS.NEW_DIRECT, { newDirect });
+          pubsub.publish(subTypes.NEW_DIRECT, { newDirect });
           return newDirect;
         });
     },
@@ -119,7 +100,7 @@ export default {
           await models.direct
             .destroy({ where: { id } })
             .then(() => {
-              pubsub.publish(SUBS.DELETE_DIRECT, { deleteDirect });
+              pubsub.publish(subTypes.DELETE_DIRECT, { deleteDirect });
               return true;
             })
             .catch(() => false)

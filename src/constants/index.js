@@ -12,7 +12,7 @@ export const DEFAULT_AVATARS = [
   "linear-gradient(120deg, #89f7fe 0%, #66a6ff 100%)",
 ];
 
-export const SUBS = {
+export const subTypes = {
   NEW_MESSAGE: "NEW_MESSAGE",
   DELETE_MESSAGE: "DELETE_MESSAGE",
   NEW_DIRECT: "NEW_DIRECT",

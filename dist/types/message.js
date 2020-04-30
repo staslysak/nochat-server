@@ -1,4 +1,10 @@
-export default `
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = `
 type Message {
   id: Int!
   userId: Int!
@@ -25,3 +31,4 @@ type Mutation {
   userTyping(chatId: Int!, username: String): Boolean!
 }
 `;
+exports.default = _default;

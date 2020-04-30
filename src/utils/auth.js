@@ -1,8 +1,8 @@
 import JWT from "jsonwebtoken";
 import config from "../config";
 import { UserInputError, AuthenticationError } from "apollo-server";
-import { createTokens } from "./tokens";
-import { STATUS, SUBS } from "../constants";
+import { createTokens, refreshTokens } from "./tokens";
+import { STATUS, subTypes } from "../constants";
 
 export const tryLogin = async (username, password, models) => {
   const user = await models.user.findOne(
@@ -65,7 +65,7 @@ export const verifyUser = async (token, models) => {
   }
 };
 
-export const onDisconnect = async ({ models, pubsub, user }) => {
+export const disconnectUser = async ({ models, pubsub, user }) => {
   return await models.user
     .findByPk(user.id)
     .then((user) => {
@@ -78,24 +78,38 @@ export const onDisconnect = async ({ models, pubsub, user }) => {
       return user;
     })
     .then((onlineUser) => {
-      pubsub.publish(SUBS.ONLINE_USER, { onlineUser });
+      pubsub.publish(subTypes.ONLINE_USER, { onlineUser });
       return onlineUser;
     });
 };
 
-export const onConnect = async ({ models, pubsub, user }) => {
+export const connectUser = async ({ models, pubsub, user }) => {
   return await models.user
     .findByPk(user.id)
     .then((user) => {
       if (user) {
-        user.update({
-          online: true,
-        });
+        user.update({ online: true });
       }
       return user;
     })
     .then((onlineUser) => {
-      pubsub.publish(SUBS.ONLINE_USER, { onlineUser });
+      pubsub.publish(subTypes.ONLINE_USER, { onlineUser });
       return onlineUser;
     });
+};
+
+export const verifyTokenConnection = async (connectionParams, models) => {
+  const token = connectionParams["x-token"];
+  if (token) {
+    try {
+      const { user } = JWT.verify(token, config.TOKEN_SECRET);
+      return user;
+    } catch (error) {
+      const refreshToken = connectionParams["x-refresh-token"];
+      const newTokens = await refreshTokens(refreshToken, models);
+      // if (newTokens.token && newTokens.refreshToken) {
+      // }
+      return newTokens.user || {};
+    }
+  }
 };

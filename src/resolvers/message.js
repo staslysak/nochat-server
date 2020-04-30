@@ -1,33 +1,6 @@
-import { SUBS } from "../constants";
-import { withFilter } from "apollo-server";
+import { subTypes } from "../constants";
 
 export default {
-  Subscription: {
-    newMessage: {
-      subscribe: withFilter(
-        (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.NEW_MESSAGE),
-        (payload, args) => payload.newMessage.chatId === args.chatId
-      ),
-    },
-    deleteMessage: {
-      subscribe: withFilter(
-        (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.DELETE_MESSAGE),
-        (payload, args) => payload.deleteMessage.chatId === args.chatId
-      ),
-    },
-    userTyping: {
-      subscribe: withFilter(
-        (_, __, { pubsub }) => pubsub.asyncIterator(SUBS.USER_TYPING),
-        (payload, args, { user }) => {
-          console.log("userTyping", payload, args);
-          return (
-            payload.chatId === args.chatId &&
-            payload.userTyping !== user.username
-          );
-        }
-      ),
-    },
-  },
   Query: {
     messages: async (_, { chatId, offset }, { models }) => {
       return await models.message.findAll(
@@ -46,7 +19,7 @@ export default {
       await models.message
         .create({ ...args, userId: user.id }, { raw: true })
         .then(async (newMessage) => {
-          pubsub.publish(SUBS.NEW_MESSAGE, { newMessage });
+          pubsub.publish(subTypes.NEW_MESSAGE, { newMessage });
           return true;
         })
         .catch(() => false),
@@ -55,7 +28,7 @@ export default {
         return models.message
           .destroy({ where: { id } })
           .then(() => {
-            pubsub.publish(SUBS.DELETE_MESSAGE, { deleteMessage });
+            pubsub.publish(subTypes.DELETE_MESSAGE, { deleteMessage });
             return true;
           })
           .catch(() => false);
@@ -70,7 +43,7 @@ export default {
           return id;
         }),
     userTyping: async (_, { chatId, username }, { pubsub }) => {
-      pubsub.publish(SUBS.USER_TYPING, {
+      pubsub.publish(subTypes.USER_TYPING, {
         chatId,
         userTyping: username,
       });

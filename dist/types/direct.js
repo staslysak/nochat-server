@@ -1,4 +1,10 @@
-export default `
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = `
 type Direct {
   id: Int!
   user: User
@@ -28,3 +34,4 @@ type Mutation {
   deleteDirect(id: Int!): Boolean!
 }
 `;
+exports.default = _default;

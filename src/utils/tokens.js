@@ -1,6 +1,16 @@
 import JWT from "jsonwebtoken";
 import config from "../config";
 
+export const extractTokens = (tokens) => {
+  if (tokens["x-token"] || tokens["x-refresh-token"]) {
+    return {
+      token: tokens["x-token"],
+      refreshToken: tokens["x-refresh-token"],
+    };
+  }
+  return null;
+};
+
 export const createTokens = async ({ id, password }) => {
   const token = JWT.sign({ user: { id } }, config.TOKEN_SECRET, {
     expiresIn: config.TOKEN_EXPIRETION,

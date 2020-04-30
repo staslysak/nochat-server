@@ -98,14 +98,15 @@ export const connectUser = async ({ models, pubsub, user }) => {
     });
 };
 
-export const verifyTokenConnection = async (connectionParams, models) => {
-  const token = connectionParams["x-token"];
+export const verifyTokenConnection = async (
+  { token, refreshToken },
+  models
+) => {
   if (token) {
     try {
       const { user } = JWT.verify(token, config.TOKEN_SECRET);
       return user;
     } catch (error) {
-      const refreshToken = connectionParams["x-refresh-token"];
       const newTokens = await refreshTokens(refreshToken, models);
       // if (newTokens.token && newTokens.refreshToken) {
       // }

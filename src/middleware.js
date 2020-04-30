@@ -2,21 +2,21 @@ import path from "path";
 import cors from "cors";
 import express from "express";
 import JWT from "jsonwebtoken";
-import { refreshTokens } from "./utils";
+import { refreshTokens, extractTokens } from "./utils";
 import config from "./config";
 
 export const initMiddleware = (app, models) => {
   app.use(cors("*"));
 
   app.use(async (req, res, next) => {
-    const token = req.headers["x-token"];
+    const tokens = extractTokens(req.headers);
 
-    if (token) {
+    if (tokens) {
+      const { token, refreshToken } = tokens;
       try {
         const { user } = JWT.verify(token, config.TOKEN_SECRET);
         req.user = user;
       } catch (error) {
-        const refreshToken = req.headers["x-refresh-token"];
         const newTokens = await refreshTokens(refreshToken, models);
         if (newTokens.token && newTokens.refreshToken) {
           res.set({

@@ -10,11 +10,17 @@ import {
   connectUser,
   disconnectUser,
   verifyTokenConnection,
-} from "./utils/auth";
+  extractTokens,
+} from "./utils";
 import { typeDefs } from "./types";
 import { resolvers } from "./resolvers";
 
 const app = express();
+const initialContext = {
+  models,
+  op: models.op,
+  pubsub,
+};
 
 initMiddleware(app, models);
 
@@ -25,34 +31,27 @@ const server = new ApolloServer({
     if (connection) {
       return connection.context;
     } else {
-      const serverUrl = `${req.protocol}://${req.get("host")}`;
       return {
-        models,
-        op: models.Sequelize.Op,
-        pubsub,
         user: req.user,
-        serverUrl,
+        ...initialContext,
+        serverUrl: `${req.protocol}://${req.get("host")}`,
       };
     }
   },
   subscriptions: {
     onConnect: async (connectionParams) => {
       try {
-        if (
-          connectionParams["x-token"] &&
-          connectionParams["x-refresh-token"]
-        ) {
-          const user = await verifyTokenConnection(connectionParams, models);
+        const tokens = extractTokens(connectionParams);
+        if (tokens) {
+          const user = await verifyTokenConnection(tokens, models);
 
           if (user) {
-            await connectUser({ models, pubsub, user });
+            await connectUser({ ...initialContext, user });
           }
 
           return {
-            models,
-            op: models.Sequelize.Op,
-            pubsub,
             user,
+            ...initialContext,
           };
         }
       } catch (error) {

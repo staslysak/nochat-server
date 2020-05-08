@@ -1,5 +1,5 @@
 import { DEFAULT_AVATARS } from "../constants";
-export * from "./tokens";
+export * from "./jwt";
 export * from "./auth";
 
 export const shortCodeGen = () => `${Math.floor(Math.random() * 1e5)}`;

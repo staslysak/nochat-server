@@ -1,10 +1,7 @@
 import path from "path";
 import cors from "cors";
 import express from "express";
-import JWT from "jsonwebtoken";
-import { refreshTokens, extractTokens } from "./utils";
-import config from "./config";
-const { accessToken: accessOptions } = config;
+import { refreshTokens, extractTokens, verifyAccessToken } from "./utils";
 
 export const initMiddleware = (app, models) => {
   app.use(cors("*"));
@@ -15,7 +12,7 @@ export const initMiddleware = (app, models) => {
     if (tokens) {
       const { token, refreshToken } = tokens;
       try {
-        const { user } = JWT.verify(token, accessOptions.secret);
+        const { user } = await verifyAccessToken(token);
         req.user = user;
       } catch (error) {
         const newTokens = await refreshTokens(refreshToken, models);

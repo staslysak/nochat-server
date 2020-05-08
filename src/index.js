@@ -22,7 +22,7 @@ server.applyMiddleware({ app });
 const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
 // sync({ force: false })
-models.sequelize.sync().then(async () => {
+models.sequelize.authenticate().then(async () => {
   httpServer.listen(config.PORT, () => {
     console.log(
       chalk.green(

@@ -2,7 +2,8 @@ import { ApolloServer } from "apollo-server-express";
 import {
   connectUser,
   disconnectUser,
-  verifyTokenConnection,
+  verifyAccessToken,
+  refreshTokens,
   extractTokens,
 } from "./utils";
 import { typeDefs } from "./types";
@@ -28,10 +29,16 @@ const initServer = (initialContext) =>
         try {
           const tokens = extractTokens(connectionParams);
           if (tokens) {
-            const user = await verifyTokenConnection(
-              tokens,
-              initialContext.models
-            );
+            let { user } = verifyAccessToken(tokens.token);
+
+            if (!user) {
+              const refreshData = await refreshTokens(
+                tokens.refreshToken,
+                initialContext.models
+              );
+
+              user = refreshData.user;
+            }
 
             if (user) {
               await connectUser({ ...initialContext, user });

@@ -1,9 +1,6 @@
-import JWT from "jsonwebtoken";
-import config from "../config";
 import { UserInputError, AuthenticationError } from "apollo-server";
-import { createTokens, refreshTokens } from "./tokens";
+import { createTokens, verifyAccessToken } from "./jwt";
 import { STATUS, subTypes } from "../constants";
-const { accessToken: accessOptions } = config;
 
 export const tryLogin = async (username, password, models) => {
   const user = await models.user.findOne(
@@ -20,6 +17,7 @@ export const tryLogin = async (username, password, models) => {
   }
 
   const match = await models.user.comparePassword(password, user.password);
+
   if (!match) {
     throw new UserInputError("Validation Error", {
       validationErrors: {
@@ -38,11 +36,7 @@ export const tryLogin = async (username, password, models) => {
 
 export const verifyUser = async (token, models) => {
   try {
-    JWT.verify(token, accessOptions.secret);
-
-    const { secret } = JWT.decode(token);
-
-    if (!secret) throw new AuthenticationError("Invalid Token");
+    const { secret } = await verifyAccessToken(token);
 
     const user = await models.user.update(
       { status: STATUS.ACTIVE },
@@ -52,8 +46,6 @@ export const verifyUser = async (token, models) => {
         plain: true,
       }
     );
-
-    if (!user) throw new AuthenticationError("Invalid Token");
 
     const tokens = await createTokens(user[1]);
 
@@ -97,21 +89,4 @@ export const connectUser = async ({ models, pubsub, user }) => {
       pubsub.publish(subTypes.ONLINE_USER, { onlineUser });
       return onlineUser;
     });
-};
-
-export const verifyTokenConnection = async (
-  { token, refreshToken },
-  models
-) => {
-  if (token) {
-    try {
-      const { user } = JWT.verify(token, accessOptions.secret);
-      return user;
-    } catch (error) {
-      const newTokens = await refreshTokens(refreshToken, models);
-      // if (newTokens.token && newTokens.refreshToken) {
-      // }
-      return newTokens.user || {};
-    }
-  }
 };

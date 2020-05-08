@@ -1,6 +1,15 @@
-import JWT from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import config from "../config";
-const { accessToken: accessOptions, refreshToken: refreshOptions } = config;
+
+export async function verifyRefreshToken(token, password) {
+  const { secret } = config.refreshToken;
+  return jwt.verify(token, secret + password);
+}
+
+export async function verifyAccessToken(token) {
+  const { secret } = config.accessToken;
+  return jwt.verify(token, secret);
+}
 
 export const extractTokens = (tokens) => {
   if (tokens["x-token"] || tokens["x-refresh-token"]) {
@@ -15,27 +24,29 @@ export const extractTokens = (tokens) => {
 export const createTokens = async ({ id, password }) => {
   const payload = { user: { id } };
 
-  const token = JWT.sign(payload, accessOptions.secret, accessOptions.options);
-
-  const refreshToken = JWT.sign(
+  const token = jwt.sign(
     payload,
-    refreshOptions.secret + password,
-    refreshOptions.options
+    config.accessToken.secret,
+    config.accessToken.options
+  );
+
+  const refreshToken = jwt.sign(
+    payload,
+    config.refreshToken.secret + password,
+    config.refreshToken.options
   );
 
   return { token, refreshToken };
 };
 
 export const createValidationToken = (secret) =>
-  JWT.sign({ secret }, accessOptions.secret, accessOptions.options);
+  jwt.sign({ secret }, config.accessToken.secret, config.accessToken.options);
 
 export const refreshTokens = async (refreshToken, models) => {
-  let userId = -1;
   try {
     const {
-      user: { id },
-    } = JWT.decode(refreshToken);
-    userId = id;
+      user: { id: userId },
+    } = jwt.decode(refreshToken);
 
     if (!userId) return {};
 
@@ -43,7 +54,7 @@ export const refreshTokens = async (refreshToken, models) => {
 
     if (!user) return {};
 
-    JWT.verify(refreshToken, refreshOptions.secret + user.password);
+    verifyRefreshToken(refreshToken, user.password);
 
     const tokens = await createTokens(user);
 

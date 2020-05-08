@@ -7,13 +7,13 @@ export default {
       return await models.user.findByPk(id, { raw: true });
     },
     lastMessage: async ({ id }, __, { models }) =>
-      (await models.message.findOne(
+      await models.message.findOne(
         {
           where: { chatId: id },
           order: [["created_at", "DESC"]],
         },
         { raw: true }
-      )) || {},
+      ),
     unread: async ({ id }, __, { models, op, user }) =>
       await models.message.count(
         {

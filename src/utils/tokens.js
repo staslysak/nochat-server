@@ -1,5 +1,6 @@
 import JWT from "jsonwebtoken";
 import config from "../config";
+const { accessToken: accessOptions, refreshToken: refreshOptions } = config;
 
 export const extractTokens = (tokens) => {
   if (tokens["x-token"] || tokens["x-refresh-token"]) {
@@ -12,23 +13,21 @@ export const extractTokens = (tokens) => {
 };
 
 export const createTokens = async ({ id, password }) => {
-  const token = JWT.sign({ user: { id } }, config.TOKEN_SECRET, {
-    expiresIn: config.TOKEN_EXPIRETION,
-  });
+  const payload = { user: { id } };
+
+  const token = JWT.sign(payload, accessOptions.secret, accessOptions.options);
 
   const refreshToken = JWT.sign(
-    { user: { id } },
-    password + config.REFRESH_TOKEN_SECRET,
-    { expiresIn: config.REFRESH_TOKEN_EXPIRETION }
+    payload,
+    refreshOptions.secret + password,
+    refreshOptions.options
   );
 
   return { token, refreshToken };
 };
 
 export const createValidationToken = (secret) =>
-  JWT.sign({ secret }, config.TOKEN_SECRET, {
-    expiresIn: config.REFRESH_TOKEN_EXPIRETION,
-  }); // '1h'
+  JWT.sign({ secret }, accessOptions.secret, accessOptions.options);
 
 export const refreshTokens = async (refreshToken, models) => {
   let userId = -1;
@@ -44,7 +43,7 @@ export const refreshTokens = async (refreshToken, models) => {
 
     if (!user) return {};
 
-    JWT.verify(refreshToken, user.password + config.REFRESH_TOKEN_SECRET);
+    JWT.verify(refreshToken, refreshOptions.secret + user.password);
 
     const tokens = await createTokens(user);
 

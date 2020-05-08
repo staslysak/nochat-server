@@ -15,10 +15,18 @@ export default {
   DB_URL,
   REDIS_HOST,
   REDIS_PORT,
-  TOKEN_EXPIRETION: "1m",
-  REFRESH_TOKEN_EXPIRETION: "7d",
-  TOKEN_SECRET: "tokensecret",
-  REFRESH_TOKEN_SECRET: "refreshtokensecret",
+  accessToken: {
+    secret: "tokensecret",
+    options: {
+      expiresIn: "1m",
+    },
+  },
+  refreshToken: {
+    secret: "refreshtokensecret",
+    options: {
+      expiresIn: "30d",
+    },
+  },
   SMTP_CLIENT_USER,
   SMTP_CLIENT_PW,
 };

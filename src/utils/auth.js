@@ -3,6 +3,7 @@ import config from "../config";
 import { UserInputError, AuthenticationError } from "apollo-server";
 import { createTokens, refreshTokens } from "./tokens";
 import { STATUS, subTypes } from "../constants";
+const { accessToken: accessOptions } = config;
 
 export const tryLogin = async (username, password, models) => {
   const user = await models.user.findOne(
@@ -37,7 +38,7 @@ export const tryLogin = async (username, password, models) => {
 
 export const verifyUser = async (token, models) => {
   try {
-    JWT.verify(token, config.TOKEN_SECRET);
+    JWT.verify(token, accessOptions.secret);
 
     const { secret } = JWT.decode(token);
 
@@ -104,7 +105,7 @@ export const verifyTokenConnection = async (
 ) => {
   if (token) {
     try {
-      const { user } = JWT.verify(token, config.TOKEN_SECRET);
+      const { user } = JWT.verify(token, accessOptions.secret);
       return user;
     } catch (error) {
       const newTokens = await refreshTokens(refreshToken, models);

@@ -14,10 +14,15 @@ type Message {
   createdAt: String!
 }
 
+type MessageDeleted {
+  ids: Int
+  chat: Direct
+}
+
 type Subscription {
-  newMessage(chatId: Int!): Message!
-  deleteMessage(chatId: Int!): Message!
-  userTyping(chatId: Int!): String!
+  messageCreated(chatIds: [Int]): Message!
+  messageDeleted(chatIds: [Int]): MessageDeleted!
+  typingUser(chatId: Int!): String!
 }
 
 type Query {
@@ -28,7 +33,7 @@ type Mutation {
   readMessage(id: Int!): Int!
   deleteMessage(id: Int!): Boolean!
   createMessage(chatId: Int, text: String!): Boolean!
-  userTyping(chatId: Int!, username: String): Boolean!
+  typeMessage(chatId: Int!, username: String): Boolean!
 }
 `;
 exports.default = _default;

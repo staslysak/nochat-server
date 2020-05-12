@@ -1,21 +1,25 @@
 "use strict";
 
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
 
-var _constants = require("../constants");
+var _permissions = _interopRequireDefault(require("../permissions"));
+
+var _utils = require("../utils");
 
 var _default = {
   Query: {
-    messages: async (_, {
+    messages: _permissions.default.createResolver(async (_, {
       chatId,
       offset
     }, {
-      models
+      db
     }) => {
-      return await models.message.findAll({
+      return await db.message.findAll({
         where: {
           chatId
         },
@@ -25,46 +29,52 @@ var _default = {
       }, {
         raw: true
       });
-    }
+    })
   },
   Mutation: {
-    createMessage: async (_, args, {
-      models,
+    createMessage: _permissions.default.createResolver(async (_, args, {
+      db,
       user,
       pubsub
-    }) => await models.message.create({ ...args,
-      userId: user.id
-    }, {
-      raw: true
-    }).then(async newMessage => {
-      pubsub.publish(_constants.subTypes.NEW_MESSAGE, {
-        newMessage
-      });
-      return true;
-    }).catch(() => false),
-    deleteMessage: async (_, {
-      id
-    }, {
-      models,
-      pubsub
-    }) => await models.message.findByPk(id).then(deleteMessage => {
-      return models.message.destroy({
-        where: {
-          id
-        }
-      }).then(() => {
-        pubsub.publish(_constants.subTypes.DELETE_MESSAGE, {
-          deleteMessage
+    }) => {
+      return await db.message.create({ ...args,
+        userId: user.id
+      }, {
+        raw: true
+      }).then(messageCreated => {
+        pubsub.publish(_utils.SUBSCRIBTION_TYPES.MESSAGE_CREATED, {
+          messageCreated
         });
         return true;
       }).catch(() => false);
     }),
-    readMessage: async (_, {
+    deleteMessage: _permissions.default.createResolver(async (_, {
       id
     }, {
-      models,
+      db,
       pubsub
-    }) => await models.message.update({
+    }) => await db.message.findByPk(id).then(async message => {
+      const chat = await db.direct.findOne({
+        where: {
+          id: message.chatId
+        }
+      });
+      return await db.message.destroy({
+        where: {
+          id
+        }
+      }).then(() => pubsub.publish(_utils.SUBSCRIBTION_TYPES.MESSAGE_DELETED, {
+        messageDeleted: {
+          ids: id,
+          chat
+        }
+      })).then(() => true).catch(() => false);
+    })),
+    readMessage: _permissions.default.createResolver(async (_, {
+      id
+    }, {
+      db
+    }) => await db.message.update({
       unread: false
     }, {
       where: {
@@ -72,18 +82,16 @@ var _default = {
       },
       returning: true,
       plain: true
-    }).then(message => {
-      return id;
-    }),
-    userTyping: async (_, {
+    }).then(message => id)),
+    typeMessage: async (_, {
       chatId,
       username
     }, {
       pubsub
     }) => {
-      pubsub.publish(_constants.subTypes.USER_TYPING, {
+      pubsub.publish(_utils.SUBSCRIBTION_TYPES.TYPING_USER, {
         chatId,
-        userTyping: username
+        typingUser: username
       });
       return true;
     }

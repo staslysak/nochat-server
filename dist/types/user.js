@@ -18,7 +18,12 @@ type User {
 
 type LoginResponse {
   user: User
-  token: String
+  accessToken: String
+  refreshToken: String
+}
+
+type TokensResponse {
+  accessToken: String
   refreshToken: String
 }
 
@@ -30,6 +35,7 @@ type Query {
   currentUser: User!
   users(username: String): [User!]
   onlineUsers: [User!]
+  refreshTokens(refreshToken: String!): TokensResponse
 }
 
 type Mutation {

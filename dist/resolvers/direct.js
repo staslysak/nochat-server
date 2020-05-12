@@ -1,11 +1,15 @@
 "use strict";
 
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
 
-var _constants = require("../constants");
+var _permissions = _interopRequireDefault(require("../permissions"));
+
+var _utils = require("../utils");
 
 var _default = {
   Direct: {
@@ -13,33 +17,33 @@ var _default = {
       receiverId,
       senderId
     }, __, {
-      models,
+      db,
       user
     }) => {
       const id = receiverId === user.id ? senderId : receiverId;
-      return await models.user.findByPk(id, {
+      return await db.user.findByPk(id, {
         raw: true
       });
     },
     lastMessage: async ({
       id
     }, __, {
-      models
-    }) => (await models.message.findOne({
+      db
+    }) => await db.message.findOne({
       where: {
         chatId: id
       },
       order: [["created_at", "DESC"]]
     }, {
       raw: true
-    })) || {},
+    }),
     unread: async ({
       id
     }, __, {
-      models,
+      db,
       op,
       user
-    }) => await models.message.count({
+    }) => await db.message.count({
       where: {
         chatId: id,
         unread: true,
@@ -52,29 +56,17 @@ var _default = {
     })
   },
   Query: {
-    directLastMessage: async (_, {
-      chatId
-    }, {
-      models
-    }) => await models.message.findOne({
-      where: {
-        chatId
-      },
-      order: [["created_at", "DESC"]]
-    }, {
-      raw: true
-    }),
-    currentDirect: async (_, {
+    currentDirect: _permissions.default.createResolver(async (_, {
       userId
     }, {
-      models,
+      db,
       op,
       user
     }) => {
-      const recipient = await models.user.findByPk(userId, {
+      const recipient = await db.user.findByPk(userId, {
         raw: true
       });
-      return await models.direct.findOne({
+      return await db.direct.findOne({
         where: {
           [op.or]: [{
             receiverId: user.id,
@@ -92,12 +84,32 @@ var _default = {
       })).catch(() => ({
         recipient
       }));
-    },
-    directs: async (_, __, {
-      models,
+    }),
+    direct: _permissions.default.createResolver(async (_, {
+      id
+    }, {
+      db,
       op,
       user
-    }) => await models.direct.findAll({
+    }) => {
+      return await db.direct.findOne({
+        where: {
+          id,
+          [op.or]: [{
+            receiverId: user.id
+          }, {
+            senderId: user.id
+          }]
+        }
+      }, {
+        raw: true
+      });
+    }),
+    directs: _permissions.default.createResolver(async (_, __, {
+      db,
+      op,
+      user
+    }) => await db.direct.findAll({
       where: {
         [op.or]: [{
           receiverId: user.id
@@ -107,19 +119,19 @@ var _default = {
       }
     }, {
       raw: true
-    })
+    }))
   },
   Mutation: {
-    createDirect: async (_, {
+    createDirect: _permissions.default.createResolver(async (_, {
       userId,
       text
     }, {
-      models,
+      db,
       op,
       user,
       pubsub
     }) => {
-      const exists = await models.direct.findOne({
+      const exists = await db.direct.findOne({
         where: {
           [op.or]: [{
             receiverId: user.id,
@@ -135,36 +147,38 @@ var _default = {
         return exists;
       }
 
-      return await models.direct.create({
+      return await db.direct.create({
         receiverId: user.id,
         senderId: userId
-      }).then(async newDirect => {
-        await models.message.create({
+      }).then(async directCreated => {
+        await db.message.create({
           userId: user.id,
-          chatId: newDirect.id,
+          chatId: directCreated.id,
           text
         });
-        pubsub.publish(_constants.subTypes.NEW_DIRECT, {
-          newDirect
+        pubsub.publish(_utils.SUBSCRIBTION_TYPES.DIRECT_CREATED, {
+          directCreated
         });
-        return newDirect;
+        return directCreated;
       });
-    },
-    deleteDirect: async (_, {
+    }),
+    deleteDirect: _permissions.default.createResolver(async (_, {
       id
     }, {
-      models,
+      db,
       pubsub
-    }) => await models.direct.findByPk(id).then(async deleteDirect => await models.direct.destroy({
-      where: {
-        id
-      }
-    }).then(() => {
-      pubsub.publish(_constants.subTypes.DELETE_DIRECT, {
-        deleteDirect
-      });
-      return true;
-    }).catch(() => false))
+    }) => await db.direct.findByPk(id).then(async directDeleted => {
+      return await db.direct.destroy({
+        where: {
+          id
+        }
+      }).then(() => {
+        pubsub.publish(_utils.SUBSCRIBTION_TYPES.DIRECT_DELETED, {
+          directDeleted
+        });
+        return true;
+      }).catch(() => false);
+    }))
   }
 };
 exports.default = _default;

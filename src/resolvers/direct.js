@@ -1,21 +1,22 @@
-import { subTypes } from "../constants";
+import reqAuth from "../permissions";
+import { SUBSCRIBTION_TYPES } from "../utils";
 
 export default {
   Direct: {
-    user: async ({ receiverId, senderId }, __, { models, user }) => {
+    user: async ({ receiverId, senderId }, __, { db, user }) => {
       const id = receiverId === user.id ? senderId : receiverId;
-      return await models.user.findByPk(id, { raw: true });
+      return await db.user.findByPk(id, { raw: true });
     },
-    lastMessage: async ({ id }, __, { models }) =>
-      await models.message.findOne(
+    lastMessage: async ({ id }, __, { db }) =>
+      await db.message.findOne(
         {
           where: { chatId: id },
           order: [["created_at", "DESC"]],
         },
         { raw: true }
       ),
-    unread: async ({ id }, __, { models, op, user }) =>
-      await models.message.count(
+    unread: async ({ id }, __, { db, op, user }) =>
+      await db.message.count(
         {
           where: {
             chatId: id,
@@ -27,83 +28,98 @@ export default {
       ),
   },
   Query: {
-    directLastMessage: async (_, { chatId }, { models }) =>
-      await models.message.findOne(
-        {
-          where: { chatId },
-          order: [["created_at", "DESC"]],
-        },
-        { raw: true }
-      ),
-    currentDirect: async (_, { userId }, { models, op, user }) => {
-      const recipient = await models.user.findByPk(userId, { raw: true });
+    currentDirect: reqAuth.createResolver(
+      async (_, { userId }, { db, op, user }) => {
+        const recipient = await db.user.findByPk(userId, { raw: true });
 
-      return await models.direct
-        .findOne(
-          {
-            where: {
-              [op.or]: [
-                { receiverId: user.id, senderId: userId },
-                { receiverId: userId, senderId: user.id },
-              ],
+        return await db.direct
+          .findOne(
+            {
+              where: {
+                [op.or]: [
+                  { receiverId: user.id, senderId: userId },
+                  { receiverId: userId, senderId: user.id },
+                ],
+              },
             },
-          },
-          { raw: true }
-        )
-        .then((direct) => ({ direct: direct.dataValues, recipient }))
-        .catch(() => ({ recipient }));
-    },
-    directs: async (_, __, { models, op, user }) =>
-      await models.direct.findAll(
+            { raw: true }
+          )
+          .then((direct) => ({ direct: direct.dataValues, recipient }))
+          .catch(() => ({ recipient }));
+      }
+    ),
+    direct: reqAuth.createResolver(async (_, { id }, { db, op, user }) => {
+      return await db.direct.findOne(
         {
           where: {
+            id,
             [op.or]: [{ receiverId: user.id }, { senderId: user.id }],
           },
         },
         { raw: true }
-      ),
+      );
+    }),
+    directs: reqAuth.createResolver(
+      async (_, __, { db, op, user }) =>
+        await db.direct.findAll(
+          {
+            where: {
+              [op.or]: [{ receiverId: user.id }, { senderId: user.id }],
+            },
+          },
+          { raw: true }
+        )
+    ),
   },
   Mutation: {
-    createDirect: async (_, { userId, text }, { models, op, user, pubsub }) => {
-      const exists = await models.direct.findOne({
-        where: {
-          [op.or]: [
-            { receiverId: user.id, senderId: userId },
-            { senderId: user.id, receiverId: userId },
-          ],
-        },
-      });
-
-      if (exists) {
-        return exists;
-      }
-
-      return await models.direct
-        .create({
-          receiverId: user.id,
-          senderId: userId,
-        })
-        .then(async (newDirect) => {
-          await models.message.create({
-            userId: user.id,
-            chatId: newDirect.id,
-            text,
-          });
-
-          pubsub.publish(subTypes.NEW_DIRECT, { newDirect });
-          return newDirect;
+    createDirect: reqAuth.createResolver(
+      async (_, { userId, text }, { db, op, user, pubsub }) => {
+        const exists = await db.direct.findOne({
+          where: {
+            [op.or]: [
+              { receiverId: user.id, senderId: userId },
+              { senderId: user.id, receiverId: userId },
+            ],
+          },
         });
-    },
-    deleteDirect: async (_, { id }, { models, pubsub }) =>
-      await models.direct.findByPk(id).then(
-        async (deleteDirect) =>
-          await models.direct
+
+        if (exists) {
+          return exists;
+        }
+
+        return await db.direct
+          .create({
+            receiverId: user.id,
+            senderId: userId,
+          })
+          .then(async (directCreated) => {
+            await db.message.create({
+              userId: user.id,
+              chatId: directCreated.id,
+              text,
+            });
+
+            pubsub.publish(SUBSCRIBTION_TYPES.DIRECT_CREATED, {
+              directCreated,
+            });
+
+            return directCreated;
+          });
+      }
+    ),
+    deleteDirect: reqAuth.createResolver(
+      async (_, { id }, { db, pubsub }) =>
+        await db.direct.findByPk(id).then(async (directDeleted) => {
+          return await db.direct
             .destroy({ where: { id } })
             .then(() => {
-              pubsub.publish(subTypes.DELETE_DIRECT, { deleteDirect });
+              pubsub.publish(SUBSCRIBTION_TYPES.DIRECT_DELETED, {
+                directDeleted,
+              });
               return true;
             })
-            .catch(() => false)
-      ),
+            .catch(() => false);
+        })
+    ),
   },
 };

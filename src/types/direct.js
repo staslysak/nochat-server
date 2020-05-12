@@ -13,14 +13,14 @@ type CurrentDirect {
 }
 
 type Subscription {
-  newDirect: Direct
-  deleteDirect: Direct!
+  directCreated: Direct
+  directDeleted: Direct!
 }
 
 type Query {
   directs: [Direct!]
+  direct(id: Int!): Direct!
   currentDirect(userId: Int!): CurrentDirect
-  directLastMessage(chatId: Int!): Message!
 }
 
 type Mutation {

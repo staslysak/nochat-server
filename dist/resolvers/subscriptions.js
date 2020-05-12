@@ -7,47 +7,59 @@ exports.default = void 0;
 
 var _apolloServer = require("apollo-server");
 
-var _constants = require("../constants");
+var _utils = require("../utils");
 
 var _default = {
   Subscription: {
-    newDirect: {
+    directCreated: {
       subscribe: (0, _apolloServer.withFilter)((_, __, {
         pubsub
-      }) => pubsub.asyncIterator(_constants.subTypes.NEW_DIRECT), (payload, _, {
+      }) => pubsub.asyncIterator(_utils.SUBSCRIBTION_TYPES.DIRECT_CREATED), ({
+        directCreated
+      }, _, {
         user
-      }) => payload.newDirect.receiverId === user.id || payload.newDirect.senderId === user.id)
+      }) => [directCreated.receiverId, directCreated.senderId].includes(user.id))
     },
-    deleteDirect: {
+    directDeleted: {
       subscribe: (0, _apolloServer.withFilter)((_, __, {
         pubsub
-      }) => pubsub.asyncIterator(_constants.subTypes.DELETE_DIRECT), (payload, _, {
+      }) => pubsub.asyncIterator(_utils.SUBSCRIBTION_TYPES.DIRECT_DELETED), ({
+        directDeleted
+      }, _, {
         user
-      }) => payload.deleteDirect.receiverId === user.id || payload.deleteDirect.senderId === user.id)
+      }) => [directDeleted.receiverId, directDeleted.senderId].includes(user.id))
     },
-    newMessage: {
+    messageCreated: {
       subscribe: (0, _apolloServer.withFilter)((_, __, {
         pubsub
-      }) => pubsub.asyncIterator(_constants.subTypes.NEW_MESSAGE), (payload, args) => payload.newMessage.chatId === args.chatId)
+      }) => pubsub.asyncIterator(_utils.SUBSCRIBTION_TYPES.MESSAGE_CREATED), ({
+        messageCreated
+      }, {
+        chatIds
+      }) => chatIds.includes(messageCreated.chatId))
     },
-    deleteMessage: {
+    messageDeleted: {
       subscribe: (0, _apolloServer.withFilter)((_, __, {
         pubsub
-      }) => pubsub.asyncIterator(_constants.subTypes.DELETE_MESSAGE), (payload, args) => payload.deleteMessage.chatId === args.chatId)
+      }) => pubsub.asyncIterator(_utils.SUBSCRIBTION_TYPES.MESSAGE_DELETED), ({
+        messageDeleted
+      }, {
+        chatIds
+      }) => chatIds.includes(messageDeleted.chat.id))
     },
-    userTyping: {
+    typingUser: {
       subscribe: (0, _apolloServer.withFilter)((_, __, {
         pubsub
-      }) => pubsub.asyncIterator(_constants.subTypes.USER_TYPING), (payload, args, {
+      }) => pubsub.asyncIterator(_utils.SUBSCRIBTION_TYPES.TYPING_USER), (payload, args, {
         user
       }) => {
-        return payload.chatId === args.chatId && payload.userTyping !== user.username;
+        return payload.chatId === args.chatId && payload.typingUser !== user.username;
       })
     },
     onlineUser: {
       subscribe: (_, __, {
         pubsub
-      }) => pubsub.asyncIterator(_constants.subTypes.ONLINE_USER)
+      }) => pubsub.asyncIterator(_utils.SUBSCRIBTION_TYPES.ONLINE_USER)
     }
   }
 };

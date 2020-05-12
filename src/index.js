@@ -3,29 +3,29 @@ import http from "http";
 import chalk from "chalk";
 import config from "./config";
 import pubsub from "./pubsub";
-import models from "./db/models";
+import db from "./db/models";
 import { initMiddleware } from "./middleware";
 import initServer from "./server";
 
 const app = express();
 const initialContext = {
-  models,
-  op: models.op,
+  db,
+  op: db.op,
   pubsub,
 };
 const server = initServer(initialContext);
 
-initMiddleware(app, models);
+initMiddleware(app, db);
 
 server.applyMiddleware({ app });
 
 const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
 // sync({ force: false })
-models.sequelize.authenticate().then(async () => {
+db.sequelize.authenticate().then(async () => {
   httpServer.listen(config.PORT, () => {
     console.log(
-      chalk.green(
+      chalk.blue(
         `
         Server ready at http://localhost:${config.PORT}
 

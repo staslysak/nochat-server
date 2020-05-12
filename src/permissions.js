@@ -1,8 +1,8 @@
 import { AuthenticationError } from "apollo-server";
 
-const createResolver = resolver => {
+const createResolver = (resolver) => {
   const baseResolver = resolver;
-  baseResolver.createResolver = childResolver => {
+  baseResolver.createResolver = (childResolver) => {
     const newResolver = async (root, args, context, info) => {
       await resolver(root, args, context, info);
       return childResolver(root, args, context, info);
@@ -12,8 +12,8 @@ const createResolver = resolver => {
   return baseResolver;
 };
 
-export default createResolver((root, args, { user }) => {
-  if (!user || !user.id) {
-    throw new AuthenticationError("Unauthorized");
+export default createResolver((_, __, { user }) => {
+  if (!user?.id) {
+    throw new AuthenticationError("Unauthorized Permission");
   }
 });

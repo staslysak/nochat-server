@@ -1,9 +1,9 @@
 import { UserInputError, AuthenticationError } from "apollo-server";
 import { createTokens, verifyAccessToken } from "./jwt";
-import { STATUS, subTypes } from "../constants";
+import { STATUS, SUBSCRIBTION_TYPES } from "../utils";
 
-export const tryLogin = async (username, password, models) => {
-  const user = await models.user.findOne(
+export const tryLogin = async (username, password, db) => {
+  const user = await db.user.findOne(
     { where: { username, status: STATUS.ACTIVE } },
     { raw: true }
   );
@@ -16,7 +16,7 @@ export const tryLogin = async (username, password, models) => {
     });
   }
 
-  const match = await models.user.comparePassword(password, user.password);
+  const match = await db.user.comparePassword(password, user.password);
 
   if (!match) {
     throw new UserInputError("Validation Error", {
@@ -34,11 +34,11 @@ export const tryLogin = async (username, password, models) => {
   };
 };
 
-export const verifyUser = async (token, models) => {
+export const verifyUser = async (token, db) => {
   try {
     const { secret } = await verifyAccessToken(token);
 
-    const user = await models.user.update(
+    const user = await db.user.update(
       { status: STATUS.ACTIVE },
       {
         where: { shortCode: secret },
@@ -58,8 +58,8 @@ export const verifyUser = async (token, models) => {
   }
 };
 
-export const disconnectUser = async ({ models, pubsub, user }) => {
-  return await models.user
+export const disconnectUser = async ({ db, pubsub, user }) => {
+  return await db.user
     .findByPk(user.id)
     .then((user) => {
       if (user) {
@@ -71,13 +71,14 @@ export const disconnectUser = async ({ models, pubsub, user }) => {
       return user;
     })
     .then((onlineUser) => {
-      pubsub.publish(subTypes.ONLINE_USER, { onlineUser });
+      console.log("dis", onlineUser.online);
+      pubsub.publish(SUBSCRIBTION_TYPES.ONLINE_USER, { onlineUser });
       return onlineUser;
     });
 };
 
-export const connectUser = async ({ models, pubsub, user }) => {
-  return await models.user
+export const connectUser = async ({ db, pubsub, user }) => {
+  return await db.user
     .findByPk(user.id)
     .then((user) => {
       if (user) {
@@ -86,7 +87,8 @@ export const connectUser = async ({ models, pubsub, user }) => {
       return user;
     })
     .then((onlineUser) => {
-      pubsub.publish(subTypes.ONLINE_USER, { onlineUser });
+      console.log("conn", onlineUser.online);
+      pubsub.publish(SUBSCRIBTION_TYPES.ONLINE_USER, { onlineUser });
       return onlineUser;
     });
 };

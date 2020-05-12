@@ -1,21 +1,23 @@
 import {
+  STATUS,
   formatErrors,
   tryLogin,
   verifyUser,
   createValidationToken,
+  refreshTokens,
 } from "../utils";
 import { UserInputError } from "apollo-server";
 import { sendVerificationEmail } from "../mailer";
-import { STATUS } from "../constants";
+import reqAuth from "../permissions";
 
 export default {
   Query: {
-    currentUser: async (_, __, { models, user }) => {
-      return await models.user.findByPk(user.id, { raw: true });
-    },
-    users: (_, { username }, { models, op, user }) => {
+    currentUser: reqAuth.createResolver(async (_, __, { db, user }) => {
+      return await db.user.findByPk(user.id, { raw: true });
+    }),
+    users: reqAuth.createResolver((_, { username }, { db, op, user }) => {
       if (username) {
-        return models.user.findAll(
+        return db.user.findAll(
           {
             where: {
               username: { [op.like]: `%${username}%` },
@@ -28,16 +30,20 @@ export default {
       }
 
       return [];
+    }),
+    refreshTokens: async (_, { refreshToken }, { db }) => {
+      const tokens = await refreshTokens(refreshToken, db);
+      return tokens;
     },
   },
   Mutation: {
     logout: () => true,
-    login: async (_, { username, password }, { models }) => {
-      return await tryLogin(username, password, models);
+    login: async (_, { username, password }, { db }) => {
+      return await tryLogin(username, password, db);
     },
-    verifyUser: async (_, { secret }, { models }) => verifyUser(secret, models),
-    register: async (_, args, { models }) => {
-      return await models.user
+    verifyUser: async (_, { secret }, { db }) => verifyUser(secret, db),
+    register: async (_, args, { db }) => {
+      return await db.user
         .create(args)
         .then(async (user) => {
           const token = createValidationToken(user.shortCode);
@@ -46,7 +52,7 @@ export default {
         })
         .catch((error) => {
           throw new UserInputError("Validation Error", {
-            validationErrors: formatErrors(error, models),
+            validationErrors: formatErrors(error, db),
           });
         });
     },

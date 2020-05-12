@@ -1,4 +1,4 @@
-import { DEFAULT_AVATARS } from "../constants";
+export * from "./constants";
 export * from "./jwt";
 export * from "./auth";
 
@@ -10,9 +10,9 @@ export const avatarGen = () => {
   return gradients[idx];
 };
 
-export const formatErrors = (e, models) => {
+export const formatErrors = (e, db) => {
   const validationErrors = {};
-  if (e instanceof models.Sequelize.ValidationError) {
+  if (e instanceof db.Sequelize.ValidationError) {
     e.errors.forEach(({ path, message }) => (validationErrors[path] = message));
   }
   return validationErrors;

@@ -11,8 +11,6 @@ var _bcrypt = _interopRequireDefault(require("bcrypt"));
 
 var _utils = require("../../utils");
 
-var _constants = require("../../constants");
-
 var _default = (sequelize, DataTypes) => {
   const User = sequelize.define("user", {
     avatar: {
@@ -64,8 +62,8 @@ var _default = (sequelize, DataTypes) => {
     },
     status: {
       allowNull: false,
-      type: DataTypes.ENUM(_constants.STATUS.ACTIVE, _constants.STATUS.INACTIVE),
-      defaultValue: _constants.STATUS.INACTIVE
+      type: DataTypes.ENUM(_utils.STATUS.ACTIVE, _utils.STATUS.INACTIVE),
+      defaultValue: _utils.STATUS.INACTIVE
     },
     shortCode: {
       field: "short_code",
@@ -102,11 +100,11 @@ var _default = (sequelize, DataTypes) => {
     return match;
   };
 
-  User.associate = models => {// User.belongsToMany(models.Team, {
+  User.associate = db => {// User.belongsToMany(db.Team, {
     //   through: "member",
     //   foreignKey: "userId",
     // });
-    // User.hasMany(models.message);
+    // User.hasMany(db.message);
   };
 
   return User;

@@ -11,7 +11,7 @@ module.exports = {
     define: {
       underscored: true
     },
-    // logging: false,
+    logging: false,
     benchmark: true
   },
   test: {

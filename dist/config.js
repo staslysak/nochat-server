@@ -1,4 +1,12 @@
-require("dotenv").config();
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+require("dotenv").config(); // DB_URL=postgres://postgres:admin@127.0.0.1:5432/nochat
+
 
 const {
   DB_URL = "postgres://postgres:admin@localhost:5432/postgres",
@@ -6,10 +14,9 @@ const {
   SMTP_CLIENT_PW = "password",
   PORT = 8081,
   REDIS_HOST = "127.0.0.1",
-  REDIS_PORT = 6379,
+  REDIS_PORT = 6379
 } = process.env;
-
-export default {
+var _default = {
   PORT,
   DB_URL,
   REDIS_HOST,
@@ -17,15 +24,16 @@ export default {
   accessToken: {
     secret: "tokensecret",
     options: {
-      expiresIn: "10m",
-    },
+      expiresIn: "10m"
+    }
   },
   refreshToken: {
     secret: "refreshtokensecret",
     options: {
-      expiresIn: "30d",
-    },
+      expiresIn: "30d"
+    }
   },
   SMTP_CLIENT_USER,
-  SMTP_CLIENT_PW,
+  SMTP_CLIENT_PW
 };
+exports.default = _default;

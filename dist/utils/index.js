@@ -11,17 +11,28 @@ var _exportNames = {
 };
 exports.getHost = exports.formatErrors = exports.avatarGen = exports.shortCodeGen = void 0;
 
-var _constants = require("../constants");
+var _constants = require("./constants");
 
-var _tokens = require("./tokens");
-
-Object.keys(_tokens).forEach(function (key) {
+Object.keys(_constants).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
   if (Object.prototype.hasOwnProperty.call(_exportNames, key)) return;
   Object.defineProperty(exports, key, {
     enumerable: true,
     get: function () {
-      return _tokens[key];
+      return _constants[key];
+    }
+  });
+});
+
+var _jwt = require("./jwt");
+
+Object.keys(_jwt).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  if (Object.prototype.hasOwnProperty.call(_exportNames, key)) return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function () {
+      return _jwt[key];
     }
   });
 });
@@ -44,17 +55,17 @@ const shortCodeGen = () => `${Math.floor(Math.random() * 1e5)}`;
 exports.shortCodeGen = shortCodeGen;
 
 const avatarGen = () => {
-  const gradients = [..._constants.DEFAULT_AVATARS];
+  const gradients = [...DEFAULT_AVATARS];
   const idx = Math.floor(Math.random() * gradients.length);
   return gradients[idx];
 };
 
 exports.avatarGen = avatarGen;
 
-const formatErrors = (e, models) => {
+const formatErrors = (e, db) => {
   const validationErrors = {};
 
-  if (e instanceof models.Sequelize.ValidationError) {
+  if (e instanceof db.Sequelize.ValidationError) {
     e.errors.forEach(({
       path,
       message

@@ -1,22 +1,29 @@
 import jwt from "jsonwebtoken";
 import config from "../config";
 
+export const decodeToken = (token) => {
+  return jwt.decode(token);
+};
+
+const jwtVerify = (token, secret) =>
+  jwt.verify(token, secret, function (err, decoded) {
+    if (err) return {};
+    return decoded;
+  });
+
 export async function verifyRefreshToken(token, password) {
   const { secret } = config.refreshToken;
-  return jwt.verify(token, secret + password);
+  return jwtVerify(token, secret); // + password
 }
 
 export async function verifyAccessToken(token) {
   const { secret } = config.accessToken;
-  return jwt.verify(token, secret);
+  return jwtVerify(token, secret);
 }
 
 export const extractTokens = (tokens) => {
-  if (tokens["x-token"] || tokens["x-refresh-token"]) {
-    return {
-      token: tokens["x-token"],
-      refreshToken: tokens["x-refresh-token"],
-    };
+  if (tokens.authorization) {
+    return tokens.authorization;
   }
   return null;
 };
@@ -24,7 +31,7 @@ export const extractTokens = (tokens) => {
 export const createTokens = async ({ id, password }) => {
   const payload = { user: { id } };
 
-  const token = jwt.sign(
+  const accessToken = jwt.sign(
     payload,
     config.accessToken.secret,
     config.accessToken.options
@@ -32,37 +39,38 @@ export const createTokens = async ({ id, password }) => {
 
   const refreshToken = jwt.sign(
     payload,
-    config.refreshToken.secret + password,
+    config.refreshToken.secret, //  + password,
     config.refreshToken.options
   );
 
-  return { token, refreshToken };
+  return { accessToken, refreshToken };
 };
 
 export const createValidationToken = (secret) =>
   jwt.sign({ secret }, config.accessToken.secret, config.accessToken.options);
 
-export const refreshTokens = async (refreshToken, models) => {
-  try {
-    const {
-      user: { id: userId },
-    } = jwt.decode(refreshToken);
+export const refreshTokens = async (refreshToken, db) => {
+  const { user } = jwt.decode(refreshToken);
 
-    if (!userId) return {};
+  if (!user?.id) return {};
 
-    const user = await models.user.findByPk(userId, { raw: true });
-
-    if (!user) return {};
-
-    verifyRefreshToken(refreshToken, user.password);
-
-    const tokens = await createTokens(user);
-
-    return {
-      user,
-      ...tokens,
-    };
-  } catch (error) {
-    return {};
-  }
+  return await db.user
+    .findByPk(user.id, { raw: true })
+    .then((user) => {
+      if (!user) {
+        throw new Error("Invalid Token");
+      }
+      return user;
+    })
+    .then(async (user) => {
+      await verifyRefreshToken(refreshToken); // +user.password;
+      return user;
+    })
+    .then(async (user) => {
+      const tokens = await createTokens(user);
+      return { user, ...tokens };
+    })
+    .catch(() => {
+      return {};
+    });
 };

@@ -22,14 +22,14 @@ var _default = (sequelize, DataTypes) => {
     }]
   });
 
-  Message.associate = models => {
-    Message.belongsTo(models.user, {
+  Message.associate = db => {
+    Message.belongsTo(db.user, {
       foreignKey: {
         name: "userId",
         field: "user_id"
       }
     });
-    Message.belongsTo(models.direct, {
+    Message.belongsTo(db.direct, {
       foreignKey: {
         name: "chatId",
         field: "chat_id"

@@ -1,6 +1,5 @@
 import bcrypt from "bcrypt";
-import { shortCodeGen, avatarGen } from "../../utils";
-import { STATUS } from "../../constants";
+import { shortCodeGen, avatarGen, STATUS } from "../../utils";
 
 export default (sequelize, DataTypes) => {
   const User = sequelize.define(
@@ -95,12 +94,12 @@ export default (sequelize, DataTypes) => {
     return match;
   };
 
-  User.associate = (models) => {
-    // User.belongsToMany(models.Team, {
+  User.associate = (db) => {
+    // User.belongsToMany(db.Team, {
     //   through: "member",
     //   foreignKey: "userId",
     // });
-    // User.hasMany(models.message);
+    // User.hasMany(db.message);
   };
 
   return User;

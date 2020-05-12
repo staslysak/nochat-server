@@ -1,27 +1,21 @@
 "use strict";
 
-var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
-
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.verifyTokenConnection = exports.connectUser = exports.disconnectUser = exports.verifyUser = exports.tryLogin = void 0;
-
-var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
-
-var _config = _interopRequireDefault(require("../config"));
+exports.connectUser = exports.disconnectUser = exports.verifyUser = exports.tryLogin = void 0;
 
 var _apolloServer = require("apollo-server");
 
-var _tokens = require("./tokens");
+var _jwt = require("./jwt");
 
-var _constants = require("../constants");
+var _utils = require("../utils");
 
-const tryLogin = async (username, password, models) => {
-  const user = await models.user.findOne({
+const tryLogin = async (username, password, db) => {
+  const user = await db.user.findOne({
     where: {
       username,
-      status: _constants.STATUS.ACTIVE
+      status: _utils.STATUS.ACTIVE
     }
   }, {
     raw: true
@@ -35,7 +29,7 @@ const tryLogin = async (username, password, models) => {
     });
   }
 
-  const match = await models.user.comparePassword(password, user.password);
+  const match = await db.user.comparePassword(password, user.password);
 
   if (!match) {
     throw new _apolloServer.UserInputError("Validation Error", {
@@ -45,7 +39,7 @@ const tryLogin = async (username, password, models) => {
     });
   }
 
-  const tokens = await (0, _tokens.createTokens)(user);
+  const tokens = await (0, _jwt.createTokens)(user);
   return {
     user,
     ...tokens
@@ -54,17 +48,13 @@ const tryLogin = async (username, password, models) => {
 
 exports.tryLogin = tryLogin;
 
-const verifyUser = async (token, models) => {
+const verifyUser = async (token, db) => {
   try {
-    _jsonwebtoken.default.verify(token, _config.default.TOKEN_SECRET);
-
     const {
       secret
-    } = _jsonwebtoken.default.decode(token);
-
-    if (!secret) throw new _apolloServer.AuthenticationError("Invalid Token");
-    const user = await models.user.update({
-      status: _constants.STATUS.ACTIVE
+    } = await (0, _jwt.verifyAccessToken)(token);
+    const user = await db.user.update({
+      status: _utils.STATUS.ACTIVE
     }, {
       where: {
         shortCode: secret
@@ -72,8 +62,7 @@ const verifyUser = async (token, models) => {
       returning: true,
       plain: true
     });
-    if (!user) throw new _apolloServer.AuthenticationError("Invalid Token");
-    const tokens = await (0, _tokens.createTokens)(user[1]);
+    const tokens = await (0, _jwt.createTokens)(user[1]);
     return {
       user: user[1],
       ...tokens
@@ -86,11 +75,11 @@ const verifyUser = async (token, models) => {
 exports.verifyUser = verifyUser;
 
 const disconnectUser = async ({
-  models,
+  db,
   pubsub,
   user
 }) => {
-  return await models.user.findByPk(user.id).then(user => {
+  return await db.user.findByPk(user.id).then(user => {
     if (user) {
       user.update({
         online: false,
@@ -100,7 +89,8 @@ const disconnectUser = async ({
 
     return user;
   }).then(onlineUser => {
-    pubsub.publish(_constants.subTypes.ONLINE_USER, {
+    console.log("dis", onlineUser.online);
+    pubsub.publish(_utils.SUBSCRIBTION_TYPES.ONLINE_USER, {
       onlineUser
     });
     return onlineUser;
@@ -110,11 +100,11 @@ const disconnectUser = async ({
 exports.disconnectUser = disconnectUser;
 
 const connectUser = async ({
-  models,
+  db,
   pubsub,
   user
 }) => {
-  return await models.user.findByPk(user.id).then(user => {
+  return await db.user.findByPk(user.id).then(user => {
     if (user) {
       user.update({
         online: true
@@ -123,7 +113,8 @@ const connectUser = async ({
 
     return user;
   }).then(onlineUser => {
-    pubsub.publish(_constants.subTypes.ONLINE_USER, {
+    console.log("conn", onlineUser.online);
+    pubsub.publish(_utils.SUBSCRIBTION_TYPES.ONLINE_USER, {
       onlineUser
     });
     return onlineUser;
@@ -131,25 +122,3 @@ const connectUser = async ({
 };
 
 exports.connectUser = connectUser;
-
-const verifyTokenConnection = async (connectionParams, models) => {
-  const token = connectionParams["x-token"];
-
-  if (token) {
-    try {
-      const {
-        user
-      } = _jsonwebtoken.default.verify(token, _config.default.TOKEN_SECRET);
-
-      return user;
-    } catch (error) {
-      const refreshToken = connectionParams["x-refresh-token"];
-      const newTokens = await (0, _tokens.refreshTokens)(refreshToken, models); // if (newTokens.token && newTokens.refreshToken) {
-      // }
-
-      return newTokens.user || {};
-    }
-  }
-};
-
-exports.verifyTokenConnection = verifyTokenConnection;

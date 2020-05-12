@@ -1,5 +1,7 @@
 // export { default as resolvers } from "./resolvers";
 
+// DB_URL=postgres://postgres:admin@127.0.0.1:5432/nochat
+
 sequelize:
 -- model creation:
 

@@ -1,9 +1,8 @@
-import { ApolloServer } from "apollo-server-express";
+import { ApolloServer, AuthenticationError } from "apollo-server-express";
 import {
   connectUser,
   disconnectUser,
   verifyAccessToken,
-  refreshTokens,
   extractTokens,
 } from "./utils";
 import { typeDefs } from "./types";
@@ -15,50 +14,45 @@ const initServer = (initialContext) =>
     resolvers,
     context: async ({ req, connection }) => {
       if (connection) {
-        return connection.context;
+        return {
+          ...initialContext,
+          ...connection.context,
+        };
       } else {
         return {
           user: req.user,
           ...initialContext,
-          serverUrl: `${req.protocol}://${req.get("host")}`,
+          // serverUrl: `${req.protocol}://${req.get("host")}`,
         };
       }
     },
     subscriptions: {
       onConnect: async (connectionParams) => {
-        try {
-          const tokens = extractTokens(connectionParams);
-          if (tokens) {
-            let { user } = verifyAccessToken(tokens.token);
-
-            if (!user) {
-              const refreshData = await refreshTokens(
-                tokens.refreshToken,
-                initialContext.models
-              );
-
-              user = refreshData.user;
+        return Promise.resolve(extractTokens(connectionParams))
+          .then(async (token) => {
+            if (token) {
+              const { user } = await verifyAccessToken(token);
+              return user;
             }
-
-            if (user) {
-              await connectUser({ ...initialContext, user });
-            }
-
-            return {
-              user,
-              ...initialContext,
-            };
-          }
-        } catch (error) {
-          throw new Error("Unauthorized!");
-        }
+            throw new AuthenticationError("Invalid Token");
+          })
+          .then(async (user) => {
+            if (user) return user;
+            throw new AuthenticationError("Invalid Token");
+          })
+          .then(async (user) => {
+            console.log(`USER: ${JSON.stringify(user)}`);
+            await connectUser({ ...initialContext, user });
+            return { user };
+          })
+          .catch(() => ({}));
       },
       onDisconnect: async (_, context) => {
-        const initialContext = await context.initPromise;
-
-        if (initialContext && initialContext.user) {
-          await disconnectUser(initialContext);
-        }
+        await context.initPromise.then(async (context) => {
+          if (context?.user) {
+            await disconnectUser({ ...initialContext, ...context });
+          }
+        });
       },
     },
     playground: process.env.NODE_ENV !== "production",

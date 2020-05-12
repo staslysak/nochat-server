@@ -2,9 +2,10 @@ import {
   STATUS,
   formatErrors,
   tryLogin,
-  verifyUser,
-  createValidationToken,
+  createVerificationToken,
   refreshTokens,
+  verifyAccessToken,
+  createTokens,
 } from "../utils";
 import { UserInputError } from "apollo-server";
 import { sendVerificationEmail } from "../mailer";
@@ -41,12 +42,34 @@ export default {
     login: async (_, { username, password }, { db }) => {
       return await tryLogin(username, password, db);
     },
-    verifyUser: async (_, { secret }, { db }) => verifyUser(secret, db),
+    verifyUser: async (_, { secret }, { db }) => {
+      return await verifyAccessToken(secret)
+        .then(async ({ secret }) => {
+          const user = await db.user.update(
+            { status: STATUS.ACTIVE },
+            {
+              where: { shortCode: secret },
+              returning: true,
+              plain: true,
+            }
+          );
+
+          const tokens = await createTokens(user[1]);
+
+          return {
+            user: user[1],
+            ...tokens,
+          };
+        })
+        .catch(() => {
+          return null;
+        });
+    },
     register: async (_, args, { db }) => {
       return await db.user
         .create(args)
         .then(async (user) => {
-          const token = createValidationToken(user.shortCode);
+          const token = createVerificationToken(user.shortCode);
           await sendVerificationEmail(user.email, token);
           return true;
         })

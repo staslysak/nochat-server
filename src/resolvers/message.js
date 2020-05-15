@@ -3,45 +3,40 @@ import { SUBSCRIBTION_TYPES } from "../utils";
 
 export default {
   Query: {
-    messages: reqAuth.createResolver(async (_, { chatId, offset }, { db }) => {
-      return await db.message.findAll(
-        {
-          where: { chatId },
-          order: [["created_at", "DESC"]],
-          limit: 20,
-          offset,
-        },
-        { raw: true }
-      );
+    messages: reqAuth.createResolver(async (_, { chatId, offset }, ctx) => {
+      return await ctx.db.message.findAll({
+        where: { chatId },
+        offset,
+        limit: 20,
+        order: [["created_at", "DESC"]],
+      });
     }),
   },
   Mutation: {
-    createMessage: reqAuth.createResolver(
-      async (_, args, { db, user, pubsub }) => {
-        return await db.message
-          .create({ ...args, userId: user.id }, { raw: true })
-          .then((messageCreated) => {
-            pubsub.publish(SUBSCRIBTION_TYPES.MESSAGE_CREATED, {
-              messageCreated,
-            });
-            return true;
-          })
-          .catch(() => false);
-      }
-    ),
+    createMessage: reqAuth.createResolver(async (_, args, ctx) => {
+      return await ctx.db.message
+        .create({ ...args, userId: ctx.user.id })
+        .then((messageCreated) => {
+          ctx.pubsub.publish(SUBSCRIBTION_TYPES.MESSAGE_CREATED, {
+            messageCreated,
+          });
+          return true;
+        })
+        .catch(() => false);
+    }),
     deleteMessage: reqAuth.createResolver(
-      async (_, { id }, { db, pubsub }) =>
-        await db.message.findByPk(id).then(async (message) => {
-          const chat = await db.direct.findOne({
+      async (_, { id }, ctx) =>
+        await ctx.db.message.findByPk(id).then(async (message) => {
+          const chat = await ctx.db.direct.findOne({
             where: { id: message.chatId },
           });
-          return await db.message
+          return await ctx.db.message
             .destroy({ where: { id } })
-            .then(() =>
-              pubsub.publish(SUBSCRIBTION_TYPES.MESSAGE_DELETED, {
+            .then(() => {
+              ctx.pubsub.publish(SUBSCRIBTION_TYPES.MESSAGE_DELETED, {
                 messageDeleted: { ids: id, chat },
-              })
-            )
+              });
+            })
             .then(() => true)
             .catch(() => false);
         })

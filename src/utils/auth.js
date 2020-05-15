@@ -3,10 +3,9 @@ import { createTokens } from "./jwt";
 import { STATUS, SUBSCRIBTION_TYPES } from "./constants";
 
 export const tryLogin = async (username, password, db) => {
-  const user = await db.user.findOne(
-    { where: { username, status: STATUS.ACTIVE } },
-    { raw: true }
-  );
+  const user = await db.user.findOne({
+    where: { username, status: STATUS.ACTIVE },
+  });
 
   if (!user) {
     throw new UserInputError("Validation Error", {

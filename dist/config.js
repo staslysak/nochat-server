@@ -5,8 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-require("dotenv").config(); // DB_URL=postgres://postgres:admin@127.0.0.1:5432/nochat
-
+require("dotenv").config();
 
 const {
   DB_URL = "postgres://postgres:admin@localhost:5432/postgres",

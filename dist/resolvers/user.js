@@ -17,73 +17,68 @@ var _permissions = _interopRequireDefault(require("../permissions"));
 
 var _default = {
   Query: {
-    currentUser: _permissions.default.createResolver(async (_, __, {
-      db,
-      user
-    }) => {
-      return await db.user.findByPk(user.id, {
-        raw: true
-      });
+    self: _permissions.default.createResolver(async (_, __, ctx) => {
+      return await ctx.db.user.findByPk(ctx.user.id);
     }),
-    users: _permissions.default.createResolver((_, {
-      username
-    }, {
-      db,
-      op,
-      user
-    }) => {
-      if (username) {
-        return db.user.findAll({
+    user: _permissions.default.createResolver(async (_, args, ctx) => {
+      const user = await ctx.db.user.findByPk(args.id);
+      return user;
+    }),
+    users: _permissions.default.createResolver((_, args, ctx) => {
+      if (args.username) {
+        return ctx.db.user.findAll({
           where: {
             username: {
-              [op.like]: `%${username}%`
+              [ctx.op.like]: `%${args.username}%`
             },
             id: {
-              [op.ne]: user.id
+              [ctx.op.ne]: ctx.user.id
             },
             status: _utils.STATUS.ACTIVE
           }
-        }, {
-          raw: true
         });
       }
 
       return [];
     }),
-    refreshTokens: async (_, {
-      refreshToken
-    }, {
-      db
-    }) => {
-      const tokens = await (0, _utils.refreshTokens)(refreshToken, db);
+    refreshTokens: async (_, args, ctx) => {
+      const tokens = await (0, _utils.refreshTokens)(args.refreshToken, ctx.db);
       return tokens;
     }
   },
   Mutation: {
     logout: () => true,
-    login: async (_, {
-      username,
-      password
-    }, {
-      db
-    }) => {
-      return await (0, _utils.tryLogin)(username, password, db);
+    login: async (_, args, ctx) => {
+      return await (0, _utils.tryLogin)(args.username, args.password, ctx.db);
     },
-    verifyUser: async (_, {
-      secret
-    }, {
-      db
-    }) => (0, _utils.verifyUser)(secret, db),
-    register: async (_, args, {
-      db
-    }) => {
-      return await db.user.create(args).then(async user => {
-        const token = (0, _utils.createValidationToken)(user.shortCode);
+    verifyUser: async (_, args, ctx) => {
+      return await (0, _utils.verifyAccessToken)(args.secret).then(async ({
+        secret
+      }) => {
+        const [__, user] = await ctx.db.user.update({
+          status: _utils.STATUS.ACTIVE
+        }, {
+          where: {
+            shortCode: secret
+          },
+          returning: true,
+          plain: true
+        });
+        const tokens = await (0, _utils.createTokens)(user);
+        return {
+          user,
+          ...tokens
+        };
+      }).catch(() => null);
+    },
+    register: async (_, args, ctx) => {
+      return await ctx.db.user.create(args).then(async user => {
+        const token = (0, _utils.createVerificationToken)(user.shortCode);
         await (0, _mailer.sendVerificationEmail)(user.email, token);
         return true;
       }).catch(error => {
         throw new _apolloServer.UserInputError("Validation Error", {
-          validationErrors: (0, _utils.formatErrors)(error, db)
+          validationErrors: (0, _utils.formatErrors)(error, ctx.db)
         });
       });
     }

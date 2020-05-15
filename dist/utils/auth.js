@@ -3,22 +3,20 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.connectUser = exports.disconnectUser = exports.verifyUser = exports.tryLogin = void 0;
+exports.connectUser = exports.disconnectUser = exports.tryLogin = void 0;
 
 var _apolloServer = require("apollo-server");
 
 var _jwt = require("./jwt");
 
-var _utils = require("../utils");
+var _constants = require("./constants");
 
 const tryLogin = async (username, password, db) => {
   const user = await db.user.findOne({
     where: {
       username,
-      status: _utils.STATUS.ACTIVE
+      status: _constants.STATUS.ACTIVE
     }
-  }, {
-    raw: true
   });
 
   if (!user) {
@@ -48,32 +46,6 @@ const tryLogin = async (username, password, db) => {
 
 exports.tryLogin = tryLogin;
 
-const verifyUser = async (token, db) => {
-  try {
-    const {
-      secret
-    } = await (0, _jwt.verifyAccessToken)(token);
-    const user = await db.user.update({
-      status: _utils.STATUS.ACTIVE
-    }, {
-      where: {
-        shortCode: secret
-      },
-      returning: true,
-      plain: true
-    });
-    const tokens = await (0, _jwt.createTokens)(user[1]);
-    return {
-      user: user[1],
-      ...tokens
-    };
-  } catch (error) {
-    throw new _apolloServer.AuthenticationError("Invalid Token");
-  }
-};
-
-exports.verifyUser = verifyUser;
-
 const disconnectUser = async ({
   db,
   pubsub,
@@ -90,7 +62,7 @@ const disconnectUser = async ({
     return user;
   }).then(onlineUser => {
     console.log("dis", onlineUser.online);
-    pubsub.publish(_utils.SUBSCRIBTION_TYPES.ONLINE_USER, {
+    pubsub.publish(_constants.SUBSCRIBTION_TYPES.ONLINE_USER, {
       onlineUser
     });
     return onlineUser;
@@ -114,7 +86,7 @@ const connectUser = async ({
     return user;
   }).then(onlineUser => {
     console.log("conn", onlineUser.online);
-    pubsub.publish(_utils.SUBSCRIBTION_TYPES.ONLINE_USER, {
+    pubsub.publish(_constants.SUBSCRIBTION_TYPES.ONLINE_USER, {
       onlineUser
     });
     return onlineUser;

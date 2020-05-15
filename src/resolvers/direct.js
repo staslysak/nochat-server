@@ -5,70 +5,57 @@ export default {
   Direct: {
     user: async ({ receiverId, senderId }, __, { db, user }) => {
       const id = receiverId === user.id ? senderId : receiverId;
-      return await db.user.findByPk(id, { raw: true });
+      return await db.user.findByPk(id);
     },
     lastMessage: async ({ id }, __, { db }) =>
-      await db.message.findOne(
-        {
-          where: { chatId: id },
-          order: [["created_at", "DESC"]],
-        },
-        { raw: true }
-      ),
+      await db.message.findOne({
+        where: { chatId: id },
+        order: [["created_at", "DESC"]],
+      }),
     unread: async ({ id }, __, { db, op, user }) =>
-      await db.message.count(
-        {
-          where: {
-            chatId: id,
-            unread: true,
-            userId: { [op.ne]: user.id },
-          },
+      await db.message.count({
+        where: {
+          chatId: id,
+          unread: true,
+          userId: { [op.ne]: user.id },
         },
-        { raw: true }
-      ),
+      }),
+    messages: async (root, __, ctx) => {
+      return await ctx.db.message.findAll({
+        where: { chatId: root.id },
+        order: [["created_at", "DESC"]],
+        limit: 20,
+      });
+    },
   },
   Query: {
-    currentDirect: reqAuth.createResolver(
-      async (_, { userId }, { db, op, user }) => {
-        const recipient = await db.user.findByPk(userId, { raw: true });
+    direct: reqAuth.createResolver(
+      async (_, { id, userId }, { db, op, user }) => {
+        let direct = null;
 
-        return await db.direct
-          .findOne(
-            {
-              where: {
-                [op.or]: [
-                  { receiverId: user.id, senderId: userId },
-                  { receiverId: userId, senderId: user.id },
-                ],
-              },
-            },
-            { raw: true }
-          )
-          .then((direct) => ({ direct: direct.dataValues, recipient }))
-          .catch(() => ({ recipient }));
+        if (id) {
+          direct = await db.direct.findByPk(id);
+        }
+
+        direct = await db.direct.findOne({
+          where: {
+            [op.or]: [
+              { receiverId: user.id, senderId: userId },
+              { receiverId: userId, senderId: user.id },
+            ],
+          },
+        });
+
+        return direct;
       }
     ),
-    direct: reqAuth.createResolver(async (_, { id }, { db, op, user }) => {
-      return await db.direct.findOne(
-        {
-          where: {
-            id,
-            [op.or]: [{ receiverId: user.id }, { senderId: user.id }],
-          },
-        },
-        { raw: true }
-      );
-    }),
     directs: reqAuth.createResolver(
       async (_, __, { db, op, user }) =>
-        await db.direct.findAll(
-          {
-            where: {
-              [op.or]: [{ receiverId: user.id }, { senderId: user.id }],
-            },
+        await db.direct.findAll({
+          where: {
+            [op.or]: [{ receiverId: user.id }, { senderId: user.id }],
           },
-          { raw: true }
-        )
+        })
     ),
   },
   Mutation: {

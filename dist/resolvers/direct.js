@@ -21,9 +21,7 @@ var _default = {
       user
     }) => {
       const id = receiverId === user.id ? senderId : receiverId;
-      return await db.user.findByPk(id, {
-        raw: true
-      });
+      return await db.user.findByPk(id);
     },
     lastMessage: async ({
       id
@@ -34,8 +32,6 @@ var _default = {
         chatId: id
       },
       order: [["created_at", "DESC"]]
-    }, {
-      raw: true
     }),
     unread: async ({
       id
@@ -51,22 +47,33 @@ var _default = {
           [op.ne]: user.id
         }
       }
-    }, {
-      raw: true
-    })
+    }),
+    messages: async (root, __, ctx) => {
+      return await ctx.db.message.findAll({
+        where: {
+          chatId: root.id
+        },
+        order: [["created_at", "DESC"]],
+        limit: 20
+      });
+    }
   },
   Query: {
-    currentDirect: _permissions.default.createResolver(async (_, {
+    direct: _permissions.default.createResolver(async (_, {
+      id,
       userId
     }, {
       db,
       op,
       user
     }) => {
-      const recipient = await db.user.findByPk(userId, {
-        raw: true
-      });
-      return await db.direct.findOne({
+      let direct = null;
+
+      if (id) {
+        direct = await db.direct.findByPk(id);
+      }
+
+      direct = await db.direct.findOne({
         where: {
           [op.or]: [{
             receiverId: user.id,
@@ -76,34 +83,8 @@ var _default = {
             senderId: user.id
           }]
         }
-      }, {
-        raw: true
-      }).then(direct => ({
-        direct: direct.dataValues,
-        recipient
-      })).catch(() => ({
-        recipient
-      }));
-    }),
-    direct: _permissions.default.createResolver(async (_, {
-      id
-    }, {
-      db,
-      op,
-      user
-    }) => {
-      return await db.direct.findOne({
-        where: {
-          id,
-          [op.or]: [{
-            receiverId: user.id
-          }, {
-            senderId: user.id
-          }]
-        }
-      }, {
-        raw: true
       });
+      return direct;
     }),
     directs: _permissions.default.createResolver(async (_, __, {
       db,
@@ -117,8 +98,6 @@ var _default = {
           senderId: user.id
         }]
       }
-    }, {
-      raw: true
     }))
   },
   Mutation: {

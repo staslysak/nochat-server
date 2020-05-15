@@ -16,33 +16,23 @@ var _default = {
     messages: _permissions.default.createResolver(async (_, {
       chatId,
       offset
-    }, {
-      db
-    }) => {
-      return await db.message.findAll({
+    }, ctx) => {
+      return await ctx.db.message.findAll({
         where: {
           chatId
         },
-        order: [["created_at", "DESC"]],
+        offset,
         limit: 20,
-        offset
-      }, {
-        raw: true
+        order: [["created_at", "DESC"]]
       });
     })
   },
   Mutation: {
-    createMessage: _permissions.default.createResolver(async (_, args, {
-      db,
-      user,
-      pubsub
-    }) => {
-      return await db.message.create({ ...args,
-        userId: user.id
-      }, {
-        raw: true
+    createMessage: _permissions.default.createResolver(async (_, args, ctx) => {
+      return await ctx.db.message.create({ ...args,
+        userId: ctx.user.id
       }).then(messageCreated => {
-        pubsub.publish(_utils.SUBSCRIBTION_TYPES.MESSAGE_CREATED, {
+        ctx.pubsub.publish(_utils.SUBSCRIBTION_TYPES.MESSAGE_CREATED, {
           messageCreated
         });
         return true;
@@ -50,25 +40,24 @@ var _default = {
     }),
     deleteMessage: _permissions.default.createResolver(async (_, {
       id
-    }, {
-      db,
-      pubsub
-    }) => await db.message.findByPk(id).then(async message => {
-      const chat = await db.direct.findOne({
+    }, ctx) => await ctx.db.message.findByPk(id).then(async message => {
+      const chat = await ctx.db.direct.findOne({
         where: {
           id: message.chatId
         }
       });
-      return await db.message.destroy({
+      return await ctx.db.message.destroy({
         where: {
           id
         }
-      }).then(() => pubsub.publish(_utils.SUBSCRIBTION_TYPES.MESSAGE_DELETED, {
-        messageDeleted: {
-          ids: id,
-          chat
-        }
-      })).then(() => true).catch(() => false);
+      }).then(() => {
+        ctx.pubsub.publish(_utils.SUBSCRIBTION_TYPES.MESSAGE_DELETED, {
+          messageDeleted: {
+            ids: id,
+            chat
+          }
+        });
+      }).then(() => true).catch(() => false);
     })),
     readMessage: _permissions.default.createResolver(async (_, {
       id

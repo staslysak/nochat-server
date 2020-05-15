@@ -17,13 +17,13 @@ var _utils = require("./utils");
 
 const initMiddleware = (app, db) => {
   app.use((0, _cors.default)("*"));
-  app.use(async (req, res, next) => {
+  app.use(async (req, __, next) => {
     const token = (0, _utils.extractTokens)(req.headers);
 
     if (token) {
-      const {
+      const user = await (0, _utils.verifyAccessToken)(token).then(({
         user
-      } = await (0, _utils.verifyAccessToken)(token);
+      }) => user).catch(() => null);
       req.user = user;
     }
 

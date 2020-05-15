@@ -26,7 +26,8 @@ type Subscription {
 }
 
 type Query {
-  currentUser: User!
+  self: User!
+  user(id: Int!): User!
   users(username: String): [User!]
   onlineUsers: [User!]
   refreshTokens(refreshToken: String!): TokensResponse

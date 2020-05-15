@@ -1,15 +1,11 @@
 export default `
 type Direct {
-  id: Int!
+  id: Int
   user: User
   unread: Int
-  createdAt: String!
+  createdAt: String
+  messages: [Message]
   lastMessage: Message
-}
-
-type CurrentDirect { 
-  direct: Direct
-  recipient: User
 }
 
 type Subscription {
@@ -19,8 +15,7 @@ type Subscription {
 
 type Query {
   directs: [Direct!]
-  direct(id: Int!): Direct!
-  currentDirect(userId: Int!): CurrentDirect
+  direct(userId: Int, id: Int): Direct
 }
 
 type Mutation {

@@ -34,27 +34,20 @@ const initServer = initialContext => new _apolloServerExpress.ApolloServer({
   },
   subscriptions: {
     onConnect: async connectionParams => {
-      return Promise.resolve((0, _utils.extractTokens)(connectionParams)).then(async token => {
-        if (token) {
-          const {
+      return await (0, _utils.verifyAccessToken)((0, _utils.extractTokens)(connectionParams)).then(async ({
+        user
+      }) => {
+        if (user) {
+          await (0, _utils.connectUser)({ ...initialContext,
             user
-          } = await (0, _utils.verifyAccessToken)(token);
-          return user;
+          });
+          return {
+            user
+          };
         }
 
         throw new _apolloServerExpress.AuthenticationError("Invalid Token");
-      }).then(async user => {
-        if (user) return user;
-        throw new _apolloServerExpress.AuthenticationError("Invalid Token");
-      }).then(async user => {
-        console.log(`USER: ${JSON.stringify(user)}`);
-        await (0, _utils.connectUser)({ ...initialContext,
-          user
-        });
-        return {
-          user
-        };
-      }).catch(() => ({}));
+      }); // .catch(() => ({}));
     },
     onDisconnect: async (_, context) => {
       await context.initPromise.then(async context => {

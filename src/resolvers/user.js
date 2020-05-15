@@ -13,39 +13,40 @@ import reqAuth from "../permissions";
 
 export default {
   Query: {
-    currentUser: reqAuth.createResolver(async (_, __, { db, user }) => {
-      return await db.user.findByPk(user.id, { raw: true });
+    self: reqAuth.createResolver(async (_, __, ctx) => {
+      return await ctx.db.user.findByPk(ctx.user.id);
     }),
-    users: reqAuth.createResolver((_, { username }, { db, op, user }) => {
-      if (username) {
-        return db.user.findAll(
-          {
-            where: {
-              username: { [op.like]: `%${username}%` },
-              id: { [op.ne]: user.id },
-              status: STATUS.ACTIVE,
-            },
+    user: reqAuth.createResolver(async (_, args, ctx) => {
+      const user = await ctx.db.user.findByPk(args.id);
+      return user;
+    }),
+    users: reqAuth.createResolver((_, args, ctx) => {
+      if (args.username) {
+        return ctx.db.user.findAll({
+          where: {
+            username: { [ctx.op.like]: `%${args.username}%` },
+            id: { [ctx.op.ne]: ctx.user.id },
+            status: STATUS.ACTIVE,
           },
-          { raw: true }
-        );
+        });
       }
 
       return [];
     }),
-    refreshTokens: async (_, { refreshToken }, { db }) => {
-      const tokens = await refreshTokens(refreshToken, db);
+    refreshTokens: async (_, args, ctx) => {
+      const tokens = await refreshTokens(args.refreshToken, ctx.db);
       return tokens;
     },
   },
   Mutation: {
     logout: () => true,
-    login: async (_, { username, password }, { db }) => {
-      return await tryLogin(username, password, db);
+    login: async (_, args, ctx) => {
+      return await tryLogin(args.username, args.password, ctx.db);
     },
-    verifyUser: async (_, { secret }, { db }) => {
-      return await verifyAccessToken(secret)
+    verifyUser: async (_, args, ctx) => {
+      return await verifyAccessToken(args.secret)
         .then(async ({ secret }) => {
-          const user = await db.user.update(
+          const [__, user] = await ctx.db.user.update(
             { status: STATUS.ACTIVE },
             {
               where: { shortCode: secret },
@@ -54,19 +55,14 @@ export default {
             }
           );
 
-          const tokens = await createTokens(user[1]);
+          const tokens = await createTokens(user);
 
-          return {
-            user: user[1],
-            ...tokens,
-          };
+          return { user, ...tokens };
         })
-        .catch(() => {
-          return null;
-        });
+        .catch(() => null);
     },
-    register: async (_, args, { db }) => {
-      return await db.user
+    register: async (_, args, ctx) => {
+      return await ctx.db.user
         .create(args)
         .then(async (user) => {
           const token = createVerificationToken(user.shortCode);
@@ -75,7 +71,7 @@ export default {
         })
         .catch((error) => {
           throw new UserInputError("Validation Error", {
-            validationErrors: formatErrors(error, db),
+            validationErrors: formatErrors(error, ctx.db),
           });
         });
     },

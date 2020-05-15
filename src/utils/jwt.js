@@ -64,7 +64,7 @@ export const refreshTokens = async (refreshToken, db) => {
   if (!user?.id) return {};
 
   return await db.user
-    .findByPk(user.id, { raw: true })
+    .findByPk(user.id)
     .then(async (user) => {
       if (user) {
         // refreshToken + user.password

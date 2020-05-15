@@ -5,9 +5,7 @@ var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefau
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.verifyRefreshToken = verifyRefreshToken;
-exports.verifyAccessToken = verifyAccessToken;
-exports.refreshTokens = exports.createValidationToken = exports.createTokens = exports.extractTokens = exports.decodeToken = void 0;
+exports.refreshTokens = exports.createVerificationToken = exports.createTokens = exports.extractTokens = exports.verifyAccessToken = exports.verifyRefreshToken = exports.decodeToken = void 0;
 
 var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
 
@@ -19,24 +17,27 @@ const decodeToken = token => {
 
 exports.decodeToken = decodeToken;
 
-const jwtVerify = (token, secret) => _jsonwebtoken.default.verify(token, secret, function (err, decoded) {
-  if (err) return {};
-  return decoded;
-});
+const jwtVerify = (token, secret) => {
+  return new Promise((resolve, reject) => {
+    _jsonwebtoken.default.verify(token, secret, (err, decoded) => err ? reject(err) : resolve(decoded));
+  });
+};
 
-async function verifyRefreshToken(token, password) {
-  const {
-    secret
-  } = _config.default.refreshToken;
-  return jwtVerify(token, secret); // + password
-}
+const createToken = (payload, secret, options) => {
+  return _jsonwebtoken.default.sign(payload, secret, options);
+};
 
-async function verifyAccessToken(token) {
-  const {
-    secret
-  } = _config.default.accessToken;
-  return jwtVerify(token, secret);
-}
+const verifyRefreshToken = async (token, password) => {
+  return jwtVerify(token, _config.default.refreshToken.secret); // + password
+};
+
+exports.verifyRefreshToken = verifyRefreshToken;
+
+const verifyAccessToken = async token => {
+  return jwtVerify(token, _config.default.accessToken.secret);
+};
+
+exports.verifyAccessToken = verifyAccessToken;
 
 const extractTokens = tokens => {
   if (tokens.authorization) {
@@ -57,12 +58,9 @@ const createTokens = async ({
       id
     }
   };
-
-  const accessToken = _jsonwebtoken.default.sign(payload, _config.default.accessToken.secret, _config.default.accessToken.options);
-
-  const refreshToken = _jsonwebtoken.default.sign(payload, _config.default.refreshToken.secret, //  + password,
+  const accessToken = createToken(payload, _config.default.accessToken.secret, _config.default.accessToken.options);
+  const refreshToken = createToken(payload, _config.default.refreshToken.secret, //  + password,
   _config.default.refreshToken.options);
-
   return {
     accessToken,
     refreshToken
@@ -71,11 +69,13 @@ const createTokens = async ({
 
 exports.createTokens = createTokens;
 
-const createValidationToken = secret => _jsonwebtoken.default.sign({
-  secret
-}, _config.default.accessToken.secret, _config.default.accessToken.options);
+const createVerificationToken = secret => {
+  return createToken({
+    secret
+  }, _config.default.accessToken.secret, _config.default.accessToken.options);
+};
 
-exports.createValidationToken = createValidationToken;
+exports.createVerificationToken = createVerificationToken;
 
 const refreshTokens = async (refreshToken, db) => {
   const {
@@ -83,24 +83,21 @@ const refreshTokens = async (refreshToken, db) => {
   } = _jsonwebtoken.default.decode(refreshToken);
 
   if (!(user === null || user === void 0 ? void 0 : user.id)) return {};
-  return await db.user.findByPk(user.id, {
-    raw: true
-  }).then(user => {
-    if (!user) {
-      throw new Error("Invalid Token");
+  return await db.user.findByPk(user.id).then(async user => {
+    if (user) {
+      // refreshToken + user.password
+      return await verifyRefreshToken(refreshToken).then(async ({
+        user
+      }) => {
+        const tokens = await createTokens(user);
+        return {
+          user,
+          ...tokens
+        };
+      });
     }
 
-    return user;
-  }).then(async user => {
-    await verifyRefreshToken(refreshToken); // +user.password;
-
-    return user;
-  }).then(async user => {
-    const tokens = await createTokens(user);
-    return {
-      user,
-      ...tokens
-    };
+    throw new Error("Invalid Token");
   }).catch(() => {
     return {};
   });

@@ -28,17 +28,16 @@ const initServer = (initialContext) =>
     },
     subscriptions: {
       onConnect: async (connectionParams) => {
-        return await verifyAccessToken(extractTokens(connectionParams)).then(
-          async ({ user }) => {
+        return await verifyAccessToken(extractTokens(connectionParams))
+          .then(async ({ user }) => {
             if (user) {
               await connectUser({ ...initialContext, user });
               return { user };
             }
 
             throw new AuthenticationError("Invalid Token");
-          }
-        );
-        // .catch(() => ({}));
+          })
+          .catch(() => false);
       },
       onDisconnect: async (_, context) => {
         await context.initPromise.then(async (context) => {
